@@ -10,9 +10,14 @@ pip:	pip.o FASTQSequence.o
 gref:	gref.o FASTQSequence.o
 	${LINK.C} -o gref gref.o FASTQSequence.o
 
-pip.o:	pip.C
-gref.o:	gref.C
-FASTQSequence.o:	FASTQSequence.C
+#pip.o:	pip.C
+#gref.o:	gref.C
+#FASTQSequence.o:	FASTQSequence.C
+	
+tests: testPack
+	
+testPack: pack.o
+	${LINK.C} testPack.C -o $(@) $? 
 
 clean:
 	/bin/rm -f *~ *.o core
