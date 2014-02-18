@@ -18,6 +18,8 @@ using std::ostream;
 #include <string>
 using std::string;
 
+#include <vector>
+
 class FASTQSequence {
   
 public:
@@ -25,15 +27,20 @@ public:
   bool fetch(istream &);
   friend ostream& operator<<(ostream &, const FASTQSequence &);  
   int size() const;
-  string &defline();
-  string &sequence();
-  string &quality();
+  const string &defline();
+  const string &sequence();
+  const string &quality();
+  const std::vector<bool> &compressed_sequence();
+  const std::vector<bool> &compressed_quality();
   void parse_defline();
+  void fill(const std::vector<bool> &cseq, const std::vector<bool> &cqual);
 private:
   string _def1;
   string _seq;
   string _def2;
   string _qual;
+  std::vector<bool> _cseq; // compressed sequence
+  std::vector<bool> _cqual; // compressed qscore
   char *_instrument;
   char *_run_id;
   char *_flow_cell_id;

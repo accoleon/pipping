@@ -16,8 +16,8 @@ gref:	gref.o FASTQSequence.o
 	
 tests: testPack
 	
-testPack: pack.o
-	${LINK.C} testPack.C -o $(@) $? 
+testPack: pack.o FASTQSequence.o
+	${LINK.C} testPack.C -o $(@) $?
 
 clean:
 	/bin/rm -f *~ *.o core

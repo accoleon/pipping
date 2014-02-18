@@ -13,12 +13,11 @@
 #include <vector>
 
 namespace pipping {
-	enum PackingStyle {
-		For // Looping iterator style
-	};
-	std::vector<bool> pack(PackingStyle style, const std::string &data); // Packs a string
-	std::vector<bool> packFor(const std::string &data); // Packs a string using a Looping iterator style
-	std::string unpack(const std::vector<bool> &data);
+	std::vector<bool> packSequence(const std::string &data); // Packs a sequence
+	std::string unpackSequence(const std::vector<bool> &data);
+	std::vector<bool> packQuality(const std::string &data); // Packs a quality line
+	std::string unpackQuality(const std::vector<bool> &data);
+	void repairSequence(std::string &sequence, const std::string &quality);
 }
 
 #endif
