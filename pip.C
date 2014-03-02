@@ -19,6 +19,10 @@ using std::ifstream;
 
 #include <sqlite3.h>
 
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
+
+#include "commands.h"
 #include "FASTQSequence.h"
 
 sqlite3 *db;
@@ -26,13 +30,16 @@ sqlite3 *db;
 bool init_db(string dbname)
 {
   char *sql_error_msg = 0;
-  string command("create table reads ( id int unsigned not null, defline text, sequence text, quality text )");
+  //string command(pip::sqlite::create_db);
   
   int status = sqlite3_open(dbname.c_str(), &db);
   
   if (status == SQLITE_OK) {
-    status = sqlite3_exec(db, command.c_str(), 0, 0, &sql_error_msg);
+    status = sqlite3_exec(db, pipping::sqlite::create_db, 0, 0, &sql_error_msg);
   }
+  
+  // create functions and bind it to the db
+  pipping::sqlite::unpackSequenceFn(db);
   
   if (status == SQLITE_OK) {
     return true;
@@ -45,11 +52,34 @@ bool init_db(string dbname)
 
 int main(int argc, char *argv[])
 {  
-  string filename(argv[1]);
+	string input_filename;
+	string output_dbname;
+	po::options_description desc("Options");
+	desc.add_options()
+		("help,h,?", "produce help message")
+		("compression,c", po::value<int>(), "set compression level")
+		(",o", po::value<string>(&output_dbname), "name of output DB")
+		(",i", po::value<string>(&input_filename), "input filename")
+	;
+	po::variables_map vm;
+	po::store(po::parse_command_line(argc, argv, desc), vm);
+	po::notify(vm);
+	
+	if (vm.count("help")) {
+		cout << desc << endl;
+		return 1;
+	}
+	if (vm.count("compression")) {
+		cout << "Compression level was set to "
+			<< vm["compression"].as<int>() << endl;
+	} else {
+		cout << "Compression level was not set" << endl;
+	}
+  // string filename(argv[1]);
   ifstream readfile;
   char *sql_error_msg = 0;
     
-  readfile.open(filename.c_str());
+  //readfile.open(filename.c_str());
   
   if (! init_db("fastq.db")) {
     cout << "pip: error initializing database" << endl;
