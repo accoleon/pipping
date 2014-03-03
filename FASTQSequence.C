@@ -41,9 +41,9 @@ const int FASTQSequence::size()
 
 bool FASTQSequence::fetch(istream &str)
 {  
-  getline(str, _def1);
   if (str.eof())
     return false;
+  getline(str, _def1);
   getline(str, _seq);
   getline(str, _def2);
   getline(str, _qual);

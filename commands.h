@@ -6,13 +6,12 @@
 
 #include <sqlite3.h>
 
-namespace pipping {
+namespace pip {
 	namespace sqlite {
-		extern const char *create_db;
-		extern const char *insert;
-		void unpackSequenceFn(sqlite3 *db);
-		void unpackQualityFn(sqlite3 *db);
-		void unpackSequence(sqlite3_context *context, int argc, sqlite3_value **argv);
+		extern const char* create_db;
+		extern const char* insert;
+		int unpackFn(sqlite3 *db);
+		void unpack(sqlite3_context *context, int argc, sqlite3_value **argv);
 	} /* sqlite */
 	
 } /* pip */

@@ -16,6 +16,7 @@ using std::string;
 
 #include <fstream>
 using std::ifstream;
+using std::ofstream;
 
 #include <sqlite3.h>
 
@@ -24,6 +25,8 @@ namespace po = boost::program_options;
 
 #include "commands.h"
 #include "FASTQSequence.h"
+#include "newpack.h"
+using namespace pip;
 
 sqlite3 *db;
 
@@ -35,13 +38,15 @@ bool init_db(string dbname)
   int status = sqlite3_open(dbname.c_str(), &db);
   
   if (status == SQLITE_OK) {
-    status = sqlite3_exec(db, pipping::sqlite::create_db, 0, 0, &sql_error_msg);
+    status = sqlite3_exec(db, sqlite::create_db, NULL, NULL, &sql_error_msg);
   }
   
-  // create functions and bind it to the db
-  pipping::sqlite::unpackSequenceFn(db);
+  
   
   if (status == SQLITE_OK) {
+	  // create functions and bind it to the db
+	  int ret = sqlite::unpackFn(db);
+		cout << "unpack function bound to db: " << ret << "\n";
     return true;
   }  
   else {
@@ -50,14 +55,41 @@ bool init_db(string dbname)
   }
 }
 
+void makefq(sqlite3* db) {
+	// dumps the db reads table into a fastq file
+	ofstream os("dump.fastq");
+	sqlite3_stmt *stmt = NULL;
+	
+	int rc = sqlite3_prepare_v2(
+		db,
+		"SELECT defline,unpack(data,length(data),qualityformat) FROM reads;",
+		-1,
+		&stmt,
+		NULL
+	);
+	if (rc != SQLITE_OK) {
+		cout << "sql command failed" << endl;
+		return;
+	}
+	while (sqlite3_step(stmt) == SQLITE_ROW) {
+		os << sqlite3_column_text(stmt,0) << "\n";
+		os << sqlite3_column_text(stmt,1) << "\n";
+	}
+	sqlite3_finalize(stmt);
+}
+
 int main(int argc, char *argv[])
-{  
+{
+	// Read in command line options
+	
+	// Define operations:
+	// Init db --> we always need the db - this step is always done
+	// Merge file into db
 	string input_filename;
 	string output_dbname;
 	po::options_description desc("Options");
 	desc.add_options()
 		("help,h,?", "produce help message")
-		("compression,c", po::value<int>(), "set compression level")
 		(",o", po::value<string>(&output_dbname), "name of output DB")
 		(",i", po::value<string>(&input_filename), "input filename")
 	;
@@ -69,45 +101,43 @@ int main(int argc, char *argv[])
 		cout << desc << endl;
 		return 1;
 	}
-	if (vm.count("compression")) {
-		cout << "Compression level was set to "
-			<< vm["compression"].as<int>() << endl;
-	} else {
-		cout << "Compression level was not set" << endl;
+	
+	if (input_filename.empty()) {
+		cout << "pip: no file input" << endl;
+		return 1;
 	}
-  // string filename(argv[1]);
-  ifstream readfile;
+	
+  ifstream readfile(input_filename);
   char *sql_error_msg = 0;
-    
-  //readfile.open(filename.c_str());
   
-  if (! init_db("fastq.db")) {
+	if (output_dbname.empty())
+		output_dbname += "fastq.db";
+	
+  if (! init_db(output_dbname.c_str())) {
     cout << "pip: error initializing database" << endl;
     return 1;
   }
     
   FASTQSequence x;
-  int id = 0;
   
-  char insert_cmnd[] = "INSERT INTO reads VALUES (?1,?2,?3,?4)";
   sqlite3_stmt *stmt;
-  sqlite3_prepare_v2(db, insert_cmnd, strlen(insert_cmnd), &stmt, NULL);
+  sqlite3_prepare_v2(db,sqlite::insert,-1,&stmt, NULL);
   
   sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
   
   while (x.fetch(readfile)) {
-      sqlite3_bind_int(stmt, 1, id++);
-      sqlite3_bind_text(stmt, 2, x.defline().c_str(), x.defline().length(), SQLITE_STATIC);
-      sqlite3_bind_text(stmt, 3, x.sequence().c_str(), x.sequence().length(), SQLITE_STATIC);
-      sqlite3_bind_text(stmt, 4, x.quality().c_str(), x.quality().length(), SQLITE_STATIC);
-      if (sqlite3_step(stmt) != SQLITE_DONE) {
-          cout << "fail..." << endl;
-      }
-      sqlite3_reset(stmt);
+		pack::Pack packed(x.sequence(), x.quality(),1);
+	  sqlite3_bind_text(stmt, 1, x.defline().c_str(), x.defline().length(), SQLITE_STATIC);
+		sqlite3_bind_int(stmt, 2, packed.qualityFormat());
+    sqlite3_bind_blob(stmt, 3, packed.rawData(), x.sequence().length(), SQLITE_STATIC);
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        cout << "fail..." << endl;
+    }
+    sqlite3_reset(stmt);
   }
   
   sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
-  
+  makefq(db);
   sqlite3_close(db);
   return 0;
 }

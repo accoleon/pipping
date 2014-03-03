@@ -20,9 +20,10 @@ namespace pip {
 	namespace pack {
 		Pack::Pack(const string& sequence, const string& quality)
 		{
-			qualityFormat_ = find_quality_format(quality);
+			/*qualityFormat_ = find_quality_format(quality);
 			sequenceLength_ = sequence.length();
-			pack(sequence,quality);
+			pack(sequence,quality);*/
+			Pack(sequence,quality,1);
 		}
 		
 		Pack::Pack(const string& sequence, const string& quality, int)
@@ -148,6 +149,8 @@ namespace pip {
 				switch (qualityFormat) {
 					case Illumina18:
 						outQuality += (c+Illu18QFLower);
+						break;
+						default: break;
 				}
 			}
 		}
@@ -186,6 +189,8 @@ namespace pip {
 				switch (qualityFormat) {
 					case Illumina18:
 						outQuality += (c+Illu18QFLower);
+						break;
+						default: break;
 				}
 			}
 		}
