@@ -15,6 +15,8 @@ using std::ostream;
 #include <fstream>
 using std::ifstream;
 
+#include <omp.h>
+
 #include <string>
 using std::string;
 
@@ -22,6 +24,8 @@ using std::string;
 
 int main(int argc, char *argv[])
 {  
+	// Start time measurement
+	double start = omp_get_wtime();
   string filename(argv[1]);
   ifstream readfile;
     
@@ -36,6 +40,7 @@ int main(int argc, char *argv[])
   }
   
   cout << count << endl;
-  
+  double end = omp_get_wtime();
+	cout << "Total omp walltime: " << end-start << end;
   return 0;
 }

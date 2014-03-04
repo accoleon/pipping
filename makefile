@@ -1,11 +1,11 @@
 # Makefile for pip (pipeline interface program)
 
 CXX = g++
-CXXFLAGS += -O4
-# LDFLAGS += 
+CXXFLAGS += -O3 -Wall -std=c++11
+LDFLAGS +=
 
-pip:	pip.o FASTQSequence.o
-	${LINK.C} -o pip pip.o FASTQSequence.o -lsqlite3
+pip:	pip.o FASTQSequence.o newpack.o commands.o
+	${LINK.C} -o pip $? -lsqlite3 -lboost_program_options
 
 gref:	gref.o FASTQSequence.o
 	${LINK.C} -o gref gref.o FASTQSequence.o
@@ -14,13 +14,19 @@ gref:	gref.o FASTQSequence.o
 #gref.o:	gref.C
 #FASTQSequence.o:	FASTQSequence.C
 	
-tests: testPack
+tests: testPack testFASTQ
 	
-testPack: pack.o
-	${LINK.C} testPack.C -o $(@) $? 
+testPack: FASTQSequence.o newpack.o
+	${LINK.C} testPack.C -o $(@) $?
+	
+testFASTQ: FASTQSequence.o 
+	${LINK.C} testFASTQ.C -o $(@) $?
+	
+testReadFast: testReadFast.o
+	${LINK.C} -o $(@) $?
 
 clean:
-	/bin/rm -f *~ *.o core
+	/bin/rm -f *~ *.o dump.fastq fastq.db
 
 realclean:      clean
 	/bin/rm -f imap
