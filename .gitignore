@@ -1,3 +1,7 @@
 testPack
 pip
 *.dSYM
+data
+ProfileResults.trace
+*.fastq
+*.db

@@ -1,13 +1,13 @@
-#include <sqlite3.h>
 #include <string>
 using std::string;
 #include <vector>
 using std::vector;
+#include <sqlite3.h>
 #include "commands.h"
 #include "newpack.h"
 using namespace pip::pack;
 
-#define SQLITE_DETERMINISTIC    0x800
+#define SQLITE_DETERMINISTIC 0x800 // don't know why but my sqlite3.h doesn't seem to have it
 
 namespace pip
 {
@@ -35,7 +35,7 @@ namespace pip
 				auto data = (unsigned char*)sqlite3_value_blob(argv[0]);
 				string outSequence, outQuality;
 				pip::pack::losslessUnpack(data,length,qf,outSequence,outQuality);
-				outSequence.reserve(20 + length * 2);
+				outSequence.reserve(3 + length * 2);
 				outSequence += "\n+\n";
 				outSequence += outQuality;
 				sqlite3_result_text(context, outSequence.c_str(), -1, SQLITE_TRANSIENT);

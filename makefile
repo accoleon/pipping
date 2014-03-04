@@ -26,7 +26,7 @@ testReadFast: testReadFast.o
 	${LINK.C} -o $(@) $?
 
 clean:
-	/bin/rm -f *~ *.o
+	/bin/rm -f *~ *.o dump.fastq fastq.db
 
 realclean:      clean
 	/bin/rm -f imap
