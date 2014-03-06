@@ -16,22 +16,9 @@ using std::string;
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-// Next fastest
-TEST_CASE("Testing speed of istream read in whole chunk resize") {
-	ifstream in("data/kt1_100K.1.fastq", std::ios::in | std::ios::binary);
-	if (in) {
-		string contents;
-		in.seekg(0,std::ios::end);
-		contents.resize(in.tellg());
-		in.seekg(0,std::ios::beg);
-		in.read(&contents[0],contents.size());
-		in.close();
-		//cout << contents << endl;
-	}
-}
 // Fastest
 TEST_CASE("Testing speed of fread in whole chunks resize") {
-	std::FILE *fp = std::fopen("data/kt1_100K.2.fastq", "rb");
+	std::FILE *fp = std::fopen("data/anna_500K.1.fastq", "rb");
 	if (fp) {
 		string contents;
 		std::fseek(fp, 0, SEEK_END);

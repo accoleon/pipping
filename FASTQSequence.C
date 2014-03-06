@@ -107,12 +107,28 @@ int FASTQSequence::tile() {
 	return _tile;
 }
 
-const string &FASTQSequence::read_filter() {
+int FASTQSequence::x() {
+	return _x_coord;
+}
+
+int FASTQSequence::y() {
+	return _y_coord;
+}
+
+bool FASTQSequence::filter() {
 	return _filtered;
+}
+
+const string &FASTQSequence::index() {
+	return _index;
 }
 
 int FASTQSequence::control_bits() {
 	return _control_bits;
+}
+
+int FASTQSequence::pair() {
+	return _pair_end;
 }
 
 // @HWI-ST0747:277:D1M96ACXX:6:1101:1232:2090 1:N:0:
@@ -133,7 +149,7 @@ void FASTQSequence::parse_defline()
     _x_coord = stoi(results[6]);
     _y_coord = stoi(results[7]);
     _pair_end = stoi(results[8]);
-    _filtered = results[9];
+    _filtered = results[9] == "Y" ? true : false;
     _control_bits = stoi(results[10]);
     _index = results[11];
 }

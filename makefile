@@ -4,15 +4,13 @@ CXX = g++
 CXXFLAGS += -O3 -Wall -std=c++11
 LDFLAGS +=
 
-pip:	pip.o FASTQSequence.o newpack.o commands.o
-	${LINK.C} -o pip $? -lsqlite3 -lboost_program_options
+all: pip
+
+pip: pip.o Piper.o newpack.o FASTQSequence.o commands.o
+	${LINK.C} -o $@ $^ -lsqlite3 -lboost_program_options -lconfig++
 
 gref:	gref.o FASTQSequence.o
-	${LINK.C} -o gref gref.o FASTQSequence.o
-
-#pip.o:	pip.C
-#gref.o:	gref.C
-#FASTQSequence.o:	FASTQSequence.C
+	${LINK.C} -o $@ $^
 	
 tests: testPack testFASTQ
 	
@@ -23,6 +21,9 @@ testFASTQ: FASTQSequence.o
 	${LINK.C} testFASTQ.C -o $(@) $?
 	
 testReadFast: testReadFast.o
+	${LINK.C} -o $(@) $?
+
+testParse: testParse.o
 	${LINK.C} -o $(@) $?
 
 clean:
