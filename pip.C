@@ -1,25 +1,28 @@
 //
 // Experiment with SQLite3 for next generation sequencing pipelines
 // 
-// John Conery
+// John Conery, Xu Junjie, Kevin
 // University of Oregon
 // Dec 2013
 //
 
-#include <iostream>
-using std::cin;
-using std::cout;
-using std::endl;
-#include <sstream>
-#include <string>
-using std::string;
 
 #include <fstream>
 using std::ifstream;
 using std::ofstream;
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::endl;
+#include <string>
+using std::string;
+#include <vector>
+using std::vector;
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <sqlite3.h>
-
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -32,122 +35,27 @@ using namespace pip;
 
 sqlite3 *db;
 
-void fast_read(string,string&);
-void fast_insert(sqlite3*,string&);
-
-bool init_db(string dbname)
-{
-  char *sql_error_msg = 0;
-  //string command(pip::sqlite::create_db);
-  
-  int status = sqlite3_open(dbname.c_str(), &db);
-  
-  if (status == SQLITE_OK) {
-		//sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
-    sqlite3_exec(db, sqlite::create_tbls, NULL, NULL, &sql_error_msg);
-		//cout << sql_error_msg;
-		//status = sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
-  }
-  
-  if (status == SQLITE_OK) {
-	  // create functions and bind it to the db
-	  sqlite::unpackFn(db);
-		//cout << "unpack function bound to db\n";
-    return true;
-  }  
-  else {
-    cout << "sqlite3: " << sql_error_msg << endl;
-    return false;
-  }
-}
-
-void makefq(sqlite3* db) {
-	// dumps the db reads table into a fastq file
-	auto start = clock();
-	ofstream os("dump.fastq");
-	sqlite3_stmt *stmt = NULL;
-	
-	int rc = sqlite3_prepare_v2(db,sqlite::get_reads,-1,&stmt,NULL);
-	if (rc != SQLITE_OK) {
-		cout << "SQL command failed: " << sqlite3_errmsg(db) << endl;
-		return;
-	}
-	int n = 0;
-	while (sqlite3_step(stmt) == SQLITE_ROW) {
-		os << '@' << sqlite3_column_text(stmt,0) << ':'; // instrument
-		os << sqlite3_column_text(stmt,1) << ':'; // runid
-		os << sqlite3_column_text(stmt,2) << ':'; // flowcell
-		os << sqlite3_column_text(stmt,3) << ':'; // lane
-		os << sqlite3_column_text(stmt,4) << ':'; // tile
-		os << sqlite3_column_text(stmt,5) << ':'; // x
-		os << sqlite3_column_text(stmt,6) << ' '; // y
-		os << sqlite3_column_text(stmt,7) << ':'; // pair 
-		os << (sqlite3_column_int(stmt,8) == 1 ? 'Y' : 'N') << ':'; // filter
-		os << sqlite3_column_text(stmt,9) << ':'; // control
-		os << sqlite3_column_text(stmt,10) << '\n'; // index sequence
-		os << sqlite3_column_text(stmt,11) << '\n'; // sequence\n+\nquality
-		++n;
-	}
-	sqlite3_finalize(stmt);
-	printf("%d sequences written in %4.2f seconds\n",n,(clock() - start)/(double)CLOCKS_PER_SEC);
-}
-
-int main(int argc, char *argv[])
-{
-	// Read in command line options
-	
-	// Define operations:
-	// Init db --> we always need the db - this step is always done
-	// Merge file into db
-	string input_filename;
-	string output_dbname;
-	po::options_description desc("Options");
-	desc.add_options()
-		("help,h,?", "produce help message")
-		(",o", po::value<string>(&output_dbname), "name of output DB")
-		(",i", po::value<string>(&input_filename), "input filename")
-	;
-	po::variables_map vm;
-	po::store(po::parse_command_line(argc, argv, desc), vm);
-	po::notify(vm);
-	
-	if (vm.count("help")) {
-		cout << desc << endl;
-		return 1;
-	}
-	
-	if (input_filename.empty()) {
-		cout << "pip: no file input" << endl;
-		return 1;
-	}
-	
-	// Available commands (tentative):
-	// init db
-	// merge fastq into db
-	// do (workflow)
-	// define workflow?
-	
-	// Testing createPipe
-	createPipe("test",1);
-	createPipe("test",2);
-
-	string input;
-	fast_read(input_filename,input);
-  
-	if (output_dbname.empty())
-		output_dbname += "fastq.db";
-	
-  if (! init_db(output_dbname.c_str())) {
-    cout << "pip: error initializing database" << endl;
-    return 1;
-  }
-    
-  fast_insert(db,input);
-	//makefq(db);
-  sqlite3_close(db);
-	
-  return 0;
-}
+namespace pip {
+	enum {
+		OK = 0, // no errors whatsoever
+		DBFILE_SQL_ERROR, // generic sqlite error
+		DBFILE_WRONG_FORMAT, // specified database file is not in pip format
+		DBFILE_FINALIZED, // specified database file has been finalized, cannot merge
+		MERGE_NO_INPUT, // merge: no input files
+		STREAM_NOT_SUPPORTED, // stream: application not supported yet
+		STREAM_FILE_EXISTS, // stream: output file already exists
+	};
+	const char* version = "0.1";
+	const char* MESSAGE_STRINGS[] = {
+		"OK",
+		"Error: unable to access sqlite3 database",
+		"Error: specified database file is not in pip format",
+		"Error: specified database file is finalized and is read-only",
+		"Error: merge requires at least 1 input file",
+		"Error: streaming to this application is currently not supported",
+		"Error: stream output files already exist, please check"
+	};
+} /* pip */
 
 void fast_read(string filename, string& out)
 {
@@ -202,8 +110,184 @@ void fast_insert(sqlite3* db, std::string& input)
 		}
 	  sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
 		sqlite3_finalize(stmt);
-		sqlite3_exec(db,sqlite::normalize_rawreads,NULL,NULL,&sql_error_msg);
 		auto endClock = clock() - startClock;
 		printf("%d sequences imported in %4.2f seconds\n",n,endClock/(double)CLOCKS_PER_SEC);
 	}
+}
+
+bool init_db(string dbname)
+{
+  char *sql_error_msg = 0;
+  //string command(pip::sqlite::create_db);
+  
+  int status = sqlite3_open(dbname.c_str(), &db);
+  
+  if (status == SQLITE_OK) {
+		//sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
+    sqlite3_exec(db, sqlite::create_tbls, NULL, NULL, &sql_error_msg);
+		//cout << sql_error_msg;
+		//status = sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
+  }
+  
+  if (status == SQLITE_OK) {
+	  // create functions and bind it to the db
+	  sqlite::unpackFn(db);
+		//cout << "unpack function bound to db\n";
+    return true;
+  }  
+  else {
+    cout << "sqlite3: " << sql_error_msg << endl;
+    return false;
+  }
+}
+
+void makefq(sqlite3* db)
+{
+	// dumps the db reads table into a fastq file
+	auto start = clock();
+	ofstream os("dump.fastq");
+	sqlite3_stmt *stmt = NULL;
+	
+	int rc = sqlite3_prepare_v2(db,sqlite::get_reads,-1,&stmt,NULL);
+	if (rc != SQLITE_OK) {
+		cout << "SQL command failed: " << sqlite3_errmsg(db) << endl;
+		return;
+	}
+	int n = 0;
+	while (sqlite3_step(stmt) == SQLITE_ROW) {
+		os << '@' << sqlite3_column_text(stmt,0) << ':'; // instrument
+		os << sqlite3_column_text(stmt,1) << ':'; // runid
+		os << sqlite3_column_text(stmt,2) << ':'; // flowcell
+		os << sqlite3_column_text(stmt,3) << ':'; // lane
+		os << sqlite3_column_text(stmt,4) << ':'; // tile
+		os << sqlite3_column_text(stmt,5) << ':'; // x
+		os << sqlite3_column_text(stmt,6) << ' '; // y
+		os << sqlite3_column_text(stmt,7) << ':'; // pair 
+		os << (sqlite3_column_int(stmt,8) == 1 ? 'Y' : 'N') << ':'; // filter
+		os << sqlite3_column_text(stmt,9) << ':'; // control
+		os << sqlite3_column_text(stmt,10) << '\n'; // index sequence
+		os << sqlite3_column_text(stmt,11) << '\n'; // sequence\n+\nquality
+		++n;
+	}
+	sqlite3_finalize(stmt);
+	printf("%d sequences written in %4.2f seconds\n",n,(clock() - start)/(double)CLOCKS_PER_SEC);
+}
+
+int check_db(string dbfile)
+{
+	// File does not exist - we can create it
+	struct stat statBuffer;
+	if (stat(dbfile.c_str(),&statBuffer) != 0) {
+		init_db(dbfile);
+		return 0;
+	}
+	// File exists - we can try to open the db and verify the correct tables are in there
+	int status = sqlite3_open(dbfile.c_str(), &db);
+	if (status == SQLITE_OK) { // file opened ok, now to check its contents
+		// check tables
+		return 0;
+	} else {
+		cout << "sqlite3: " << sqlite3_errmsg(db) << endl;
+		sqlite3_close(db);
+		return DBFILE_SQL_ERROR;
+	}
+}
+
+int normalize_db(string dbfile)
+{
+	// Check that we have a database
+	int check_result = check_db(dbfile);
+	if (check_result != OK) { // if there is anything wrong...
+		cout << MESSAGE_STRINGS[check_result] << endl;
+		return check_result;
+	}
+	// Checks all done, proceed
+	auto start = clock();
+	sqlite3_exec(db,sqlite::normalize_rawreads,NULL,NULL,NULL);
+	sqlite3_close(db);
+	printf("Normalized database in %4.2f seconds\n",(clock()-start)/(double)CLOCKS_PER_SEC);
+	return OK;
+}
+
+int main(int argc, char *argv[])
+{
+	// Read in command line options using boost:program_options
+	string dbfile;
+	po::options_description desc("Options");
+	desc.add_options()
+		("help,h,?","Display this help message")
+		("database,d",po::value<string>(&dbfile)->default_value("fastq.db"), "Database file")
+		("input-file,i",po::value<vector<string> >(),"Input FASTQ file(s)")
+		("merge,m","Merge specified FASTQ files to specified database")
+		("normalize,n","Normalize the specified database: merges can no longer be done after normalization")
+		("stream,s",po::value<string>(),"Stream data to another application")
+		("version,v","Display version")
+	;
+	po::positional_options_description pd;
+	pd.add("input-file",-1);
+	po::variables_map vm;
+	po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
+	po::notify(vm);
+	
+	if (vm.count("help")) { // show help
+		help:
+		cout << desc << endl;
+		return 1;
+	}
+	
+	if (vm.count("version")) { // show version
+		printf("Pip version %s\n",version);
+		return 0;
+	}
+	
+	if(vm.count("merge")) { // merge operation
+		// Check that we have a database
+		int check_result = check_db(dbfile);
+		if (check_result != OK) { // if there is anything wrong...
+			cout << MESSAGE_STRINGS[check_result] << endl;
+			return 1;
+		}
+		// Check that we have at least 1 input file
+		auto& input_files = vm["input-file"].as<vector<string> >();
+		if (input_files.size() == 0) {
+			// Error, merge cannot be done
+			cout << MESSAGE_STRINGS[MERGE_NO_INPUT] << endl;
+			return 1; 
+		}
+		// Checks all done, proceed
+		auto start = clock();
+		for (auto& file : input_files) {
+			string input;
+			fast_read(file,input);
+			fast_insert(db,input);
+		}
+		sqlite3_close(db);
+		printf("Merged %lu files in %4.2f seconds\n",input_files.size(),(clock()-start)/(double)CLOCKS_PER_SEC);
+		if (vm.count("normalize")) { // merge and normalize in a single operation
+			normalize_db(dbfile);
+		}
+		return 0;
+	}
+	
+	if (vm.count("normalize")) { // normalize operation
+		normalize_db(dbfile);
+		return 0;
+	}
+	
+	if (vm.count("stream")) { // stream operation
+		// Check that we have a database
+		// Check that the application is supported
+		// Do the streaming
+		return 0;
+	}
+	
+	// Available commands (tentative):
+	// init db
+	// merge fastq into db
+	// do (workflow)
+	// define workflow?
+
+	// If we get here doing nothing, assume the user doesn't know what to do
+	goto help;
+  return 0;
 }
