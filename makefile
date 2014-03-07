@@ -6,7 +6,7 @@ LDFLAGS +=
 
 all: pip
 
-pip: pip.o Piper.o newpack.o FASTQSequence.o commands.o
+pip: pip.o Piper.o newpack.o FASTQSequence.o commands.o stream_trimmomatic.o
 	${LINK.C} -o $@ $^ -lsqlite3 -lboost_program_options -lconfig++
 
 gref:	gref.o FASTQSequence.o

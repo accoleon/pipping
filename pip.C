@@ -31,6 +31,7 @@ namespace po = boost::program_options;
 #include "fastq.h"
 #include "newpack.h"
 #include "Piper.h"
+#include "stream_trimmomatic.h"
 using namespace pip;
 
 sqlite3 *db;
@@ -209,6 +210,26 @@ int normalize_db(string dbfile)
 	return OK;
 }
 
+int stream_db(string dbfile, string app)
+{
+	if (app != "trimmo") // just a stopgap check for now
+		return 1;
+	// Check that we have a database
+	int check_result = check_db(dbfile);
+	if (check_result != OK) { // if there is anything wrong...
+		cout << MESSAGE_STRINGS[check_result] << endl;
+		return check_result;
+	}
+	sqlite::unpackFn(db);
+	// Checks all done, proceed to stream
+	auto start = clock();
+	stream::Trimmomatic stream;
+	stream.start_stream(db);
+	sqlite3_close(db);
+	printf("Streamed data in %4.2f seconds\n",(clock()-start)/(double)CLOCKS_PER_SEC);
+	return OK;
+}
+
 int main(int argc, char *argv[])
 {
 	// Read in command line options using boost:program_options
@@ -275,9 +296,7 @@ int main(int argc, char *argv[])
 	}
 	
 	if (vm.count("stream")) { // stream operation
-		// Check that we have a database
-		// Check that the application is supported
-		// Do the streaming
+		stream_db(dbfile,vm["stream"].as<string>());
 		return 0;
 	}
 	
