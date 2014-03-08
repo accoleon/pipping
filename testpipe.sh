@@ -5,11 +5,11 @@
 OUTPREF=pip-stream-trimmomatic
 TRIM_IN1=$OUTPREF.1.fastq
 TRIM_IN2=$OUTPREF.2.fastq
-TRIM_OUT_PAIRED1=$OUTPREF.trim.paired.1.fastq
-TRIM_OUT_PAIRED2=$OUTPREF.trim.paired.2.fastq
-TRIM_OUT_UNPAIRED1=$OUTPREF.trim.unpaired.1.fastq
-TRIM_OUT_UNPAIRED2=$OUTPREF.trim.unpaired.2.fastq
-TRIM_LOG=trimming_log.txt
+TRIM_OUT_PAIRED1=/dev/null
+TRIM_OUT_PAIRED2=/dev/null
+TRIM_OUT_UNPAIRED1=/dev/null
+TRIM_OUT_UNPAIRED2=/dev/null
+TRIM_LOG=$OUTPREF.log
 JAR_PATH=Trimmomatic-0.32/trimmomatic-0.32.jar
 CLIP=ILLUMINACLIP:Trimmomatic-0.32/adapters/TruSeq2-PE.fa:2:30:10:3:TRUE
 MAXINFO=MAXINFO:140:0.9

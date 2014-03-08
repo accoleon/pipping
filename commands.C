@@ -36,7 +36,7 @@ namespace pip
 			"FROM rawreads r,instruments i,flowcells f,index_sequences ind "
 			"WHERE r.instrument=i.name AND r.flowcell=f.name AND r.index_sequence=ind.name;"
 			"DROP TABLE rawreads;VACUUM"; // drop rawreads and vacuum up the space
-		const char* get_reads = "SELECT i.name,r.runid,f.name,r.lane,r.tile,r.x,r.y,r.pair,r.filter,r.control,ind.name,unpack(r.data,length(r.data),r.qualityformat) "
+		const char* get_reads = "SELECT i.name,r.runid,f.name,r.lane,r.tile,r.x,r.y,r.pair,r.filter,r.control,ind.name,unpack(r.data,length(r.data),r.qualityformat),r.rowid "
 			"FROM reads r,instruments i,flowcells f,index_sequences ind "
 			"WHERE r.instrumentid=i.rowid AND r.flowcellid=f.rowid AND r.index_sequence=ind.rowid;";
 		int unpackFn(sqlite3 *db) {

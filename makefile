@@ -19,12 +19,6 @@ testPack: FASTQSequence.o newpack.o
 	
 testFASTQ: FASTQSequence.o 
 	${LINK.C} testFASTQ.C -o $(@) $?
-	
-testReadFast: testReadFast.o
-	${LINK.C} -o $(@) $?
-
-testParse: testParse.o
-	${LINK.C} -o $(@) $?
 
 clean:
 	/bin/rm -f *~ *.o dump.fastq fastq.db

@@ -6,8 +6,46 @@
 
 #include <vector>
 
+#include <boost/config/warning_disable.hpp>
+#include <boost/spirit/include/qi_auto.hpp>
+#include <boost/spirit/include/qi_grammar.hpp>
+#include <boost/spirit/include/qi_core.hpp>
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/qi_parse.hpp>
+#include <boost/spirit/include/qi_nonterminal.hpp>
+#include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/spirit/include/phoenix_core.hpp>
+#include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/spirit/include/phoenix_object.hpp>
+#include <boost/fusion/include/io.hpp>
+
 namespace pip {
 	namespace stream {
+		namespace qi = boost::spirit::qi;
+		struct trim_result {
+			int rowid;
+			int surviving_length;
+			int trim_start;
+			int last_base;
+			int trim_end;
+		};
+		template <typename Iterator>
+		struct trim_result_parser : qi::grammar<Iterator, trim_result()> {
+			trim_result_parser() : trim_result_parser::base_type(start)
+			{
+				using qi::int_;
+			
+				start %=
+					int_ >> ' ' // rowid
+					>> int_ >> ' ' // surviving_length
+					>> int_ >> ' ' // trim_start
+					>> int_ >> ' ' // last_base
+					>> int_ >> '\n'; // trim_end
+			}
+			qi::rule<Iterator, trim_result()> start;
+		};
+		
+		typedef std::basic_string <unsigned char> ustring;
 		class Trimmomatic /*: public StreamBase*/ { // don't inherit for now
 		public:
 			Trimmomatic();
@@ -15,15 +53,27 @@ namespace pip {
 			void start_stream(sqlite3*);
 		private:
 			void create_pipes();
+			void cleanup_pipes();
 			void open_pipes(sqlite3*);
+			void store_deltas(sqlite3*);
+			void write_out(std::string&,const ustring&);
+			void read_log();
 			static const char* file_prefix;
+			static const char* create_delta_tbl;
+			static const char* insert_deltas;
 			std::string in1;
 			std::string in2;
-			std::string outp1;
-			std::string outp2;
-			std::string outup1;
-			std::string outup2;
 			std::string log;
+			std::string trimlog;
 		};
 	} /* stream */
 } /* pip */
+
+BOOST_FUSION_ADAPT_STRUCT(
+	pip::stream::trim_result,
+	(int, rowid)
+	(int, surviving_length)
+	(int, trim_start)
+	(int, last_base)
+	(int, trim_end)
+)
