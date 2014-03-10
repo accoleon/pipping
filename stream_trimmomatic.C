@@ -4,6 +4,8 @@
 // University of Oregon
 // 2014-03-06
 
+#include <chrono>
+#include <future>
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -39,9 +41,9 @@ namespace pip {
 		Trimmomatic::~Trimmomatic() {}
 		
 		const char* Trimmomatic::file_prefix = "pip-stream-trimmomatic";
-		const char* Trimmomatic::create_delta_tbl = "CREATE TABLE trimmomatic_deltas(readid INT,surviving_sequence_len INT,trim_start INT,last_base INT,trim_end INT);";
+		const char* Trimmomatic::create_delta_tbl = "DROP TABLE IF EXISTS trimmomatic_deltas;CREATE TABLE trimmomatic_deltas(readid INT,surviving_sequence_len INT,trim_start INT,last_base INT,trim_end INT);";
 		const char* Trimmomatic::insert_deltas = "INSERT INTO trimmomatic_deltas VALUES(?1,?2,?3,?4,?5);";
-	
+		const char* Trimmomatic::get_reads = "SELECT r.rowid,r.pair,unpack(r.data,length(r.data),r.qualityformat) FROM reads r;";
 		void Trimmomatic::start_stream(sqlite3* db)
 		{
 			// for now, assume we are always working on paired end data
@@ -60,7 +62,7 @@ namespace pip {
 			mkfifo(in2.c_str(),S_IFIFO|0666);
 			log += ".log";
 			mkfifo(log.c_str(),S_IFIFO|0666);
-			cout << "create pipes succeeded\n";
+			//cout << "create pipes succeeded\n";
 		}
 		
 		void Trimmomatic::cleanup_pipes()
@@ -70,29 +72,39 @@ namespace pip {
 			remove(log.c_str());
 		}
 		
-		void Trimmomatic::write_out(string& file, const ustring& output)
+		bool Trimmomatic::write_out(string& file, const ustring& output)
 		{
-			FILE* fp = fopen(file.c_str(),"w");
-			cout << file << " opened writing" << endl;
+			FILE* fp = fopen(file.c_str(),"wb");
+			//cout << file << " opened writing" << endl;
 			if (fp) {
-				cout << file << " writing" << endl;
+				//cout << file << " writing" << endl;
 				fwrite(output.c_str(),1,output.length(),fp);
 			}
 			fclose(fp);
-			cout << file << " closed" << endl;
+			//cout << file << " closed" << endl;
+			return true;
 		}
 		
-		void Trimmomatic::read_log()
+		bool Trimmomatic::read_log()
 		{
-			FILE* fp = fopen(log.c_str(),"r");
-			cout << log << " opened for reading" << endl;
-			char buffer[1000];
+			FILE* fp = fopen(log.c_str(),"rb");
+			//cout << log << " opened for reading" << endl;
+			// Reading from named pipes doesn't cause disk I/O and thus very fast,
+			// but we still want to reduce the amount of fread calls due to its
+			// associated overhead. Since we are running on modern computers, we could
+			// work with a large buffer and reduce the number of freads we have to do.
+			const int buffer_size = 4096;
+			char buffer[buffer_size]; // just a power of 2 buffer
+			int n = 0;
 			while (!feof(fp)) {
-				auto read = fread(buffer,1,1000,fp);
+				auto read = fread(buffer,1,buffer_size,fp);
 				trimlog.append(buffer,read);
+				++n;
 			}
 			fclose(fp);
-			cout << log << " closed" << endl;
+			cout << "number of freads/appends actually called while reading log: " << n << endl;
+			//cout << log << " closed" << endl;
+			return true;
 		}
 		
 		void Trimmomatic::store_deltas(sqlite3* db)
@@ -106,13 +118,13 @@ namespace pip {
 				cout << "SQL command failed: " << sqlite3_errmsg(db) << endl;
 				return;
 			}
-			sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
 			typedef std::string::const_iterator iterator_type;
 			typedef pip::stream::trim_result_parser<iterator_type> trim_result_parser;
 			trim_result_parser g;
 			trim_result tr;
 			auto iter = trimlog.cbegin();
 			auto end = trimlog.cend();
+			sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
 			while (parse(iter,end,g,tr)) {
 				sqlite3_bind_int(stmt,1,tr.rowid); // read id
 				sqlite3_bind_int(stmt,2,tr.surviving_length); // surviving sequence length
@@ -129,21 +141,23 @@ namespace pip {
 		
 		void Trimmomatic::open_pipes(sqlite3* db)
 		{
-			cout << "open pipes started\n";
 			sqlite3_stmt *stmt = NULL;
-			int rc = sqlite3_prepare_v2(db,sqlite::get_reads,-1,&stmt,NULL);
+			int rc = sqlite3_prepare_v2(db,get_reads,-1,&stmt,NULL);
 			if (rc != SQLITE_OK) {
 				cout << "SQL command failed: " << sqlite3_errmsg(db) << endl;
 				return;
 			}
-			cout << "sqlite prepare ok\n";
 			ustring output1, output2;
-			//output1.reserve(100000 * 360); // 100k rows expected 360 chars per row
-			//output2.reserve(100000 * 360);
+			// once metadata is stored we can use metadata to initialize our output
+			// to the correct size, should be a performance increases
+			output1.reserve(100000 * 200); // currently expect these sizes
+			output2.reserve(100000 * 200);
 			ustring* co = &output1; // current output string used
+			int n = 0;
+			auto start = clock();
 			while (sqlite3_step(stmt) == SQLITE_ROW) {
 				unsigned char pair;
-				if (sqlite3_column_int(stmt,7) == 1) {
+				if (sqlite3_column_int(stmt,1) == 1) {
 					co = &output1;
 					pair = '1';
 				}
@@ -159,46 +173,34 @@ namespace pip {
 				// trimmomatic are rendered useless - we can recreate the actual trim
 				// from the log.
 				*co += '@';
-				*co += sqlite3_column_text(stmt,12); //rowid
-				/*
-				*co += sqlite3_column_text(stmt,0); // instrument
-				*co += ':';
-				*co += sqlite3_column_text(stmt,1); // runid
-				*co += ':';
-				*co += sqlite3_column_text(stmt,2); // flowcell
-				*co += ':';
-				*co += sqlite3_column_text(stmt,3); // lane
-				*co += ':';
-				*co += sqlite3_column_text(stmt,4); // tile
-				*co += ':';
-				*co += sqlite3_column_text(stmt,5); // x
-				*co += ':';
-				*co += sqlite3_column_text(stmt,6); // y
-				*co += ' ';
-				*co += pair; // pair 
-				*co += ':';
-				*co += (sqlite3_column_int(stmt,8) == 1 ? 'Y' : 'N'); // filter
-				*co += ':';
-				*co += sqlite3_column_text(stmt,9); // control
-				*co += ':';
-				*co += sqlite3_column_text(stmt,10); // index sequence*/
+				*co += sqlite3_column_text(stmt,0); // rowid
 				*co += '\n';
-				*co += sqlite3_column_text(stmt,11); // sequence\n+\nquality
+				*co += sqlite3_column_text(stmt,2); // sequence\n+\nquality
 				*co += '\n';
+				++n;
 			}
 			sqlite3_finalize(stmt);
-
+			printf("Pip: %d sequences loaded in %4.2f seconds\n",n,(double)(clock()-start)/CLOCKS_PER_SEC);
+			
 			// We need 2 threads to serve both input files simultaneously
-			std::thread tin1([&] { write_out(in1,output1); });
-			std::thread tin2([&] { write_out(in2,output2); });
+			// Using C++11 futures (so we can display a progress indicator)
+			auto tin1 = std::async(std::launch::async,[&] { return write_out(in1,output1); });
+			auto tin2 = std::async(std::launch::async,[&] { return write_out(in2,output2); });
 			
 			// We need 1 thread to receive the log file
-			std::thread tlog([&] { read_log(); });
+			auto tlog = std::async(std::launch::async,&Trimmomatic::read_log,this);
 			
-			// Wait for threads
-			tin1.join();
-			tin2.join();
-			tlog.join();
+			// Display fancy animation while we wait for threads
+			std::chrono::milliseconds span (100);
+			static const char spinner[] = "/-\\|";
+			int i = 0;
+			while (tin1.wait_for(span)==std::future_status::timeout || tin2.wait_for(span)==std::future_status::timeout || tlog.wait_for(span)==std::future_status::timeout ) {
+					std::cerr << "Streaming..." << spinner[i % sizeof(spinner)] << "\r";
+					++i;
+			}
+			tin1.get();
+			tin2.get();
+			tlog.get();
 		}
 
 	} /* stream */

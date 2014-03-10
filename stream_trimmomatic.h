@@ -7,17 +7,8 @@
 #include <vector>
 
 #include <boost/config/warning_disable.hpp>
-#include <boost/spirit/include/qi_auto.hpp>
-#include <boost/spirit/include/qi_grammar.hpp>
-#include <boost/spirit/include/qi_core.hpp>
 #include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/qi_parse.hpp>
-#include <boost/spirit/include/qi_nonterminal.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
-#include <boost/spirit/include/phoenix_core.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-#include <boost/spirit/include/phoenix_object.hpp>
-#include <boost/fusion/include/io.hpp>
 
 namespace pip {
 	namespace stream {
@@ -56,11 +47,12 @@ namespace pip {
 			void cleanup_pipes();
 			void open_pipes(sqlite3*);
 			void store_deltas(sqlite3*);
-			void write_out(std::string&,const ustring&);
-			void read_log();
+			bool write_out(std::string&,const ustring&);
+			bool read_log();
 			static const char* file_prefix;
 			static const char* create_delta_tbl;
 			static const char* insert_deltas;
+			static const char* get_reads;
 			std::string in1;
 			std::string in2;
 			std::string log;
