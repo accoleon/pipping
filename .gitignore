@@ -5,3 +5,5 @@ data
 ProfileResults.trace
 *.fastq
 *.db
+Trimmomatic-0.32
+trimming_log.txt

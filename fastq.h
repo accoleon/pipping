@@ -10,18 +10,8 @@
 // fastq parse - 500k sequences ~7 seconds
 
 #define FUSION_MAX_VECTOR_SIZE 20
-#include <boost/config/warning_disable.hpp>
-#include <boost/spirit/include/qi_auto.hpp>
-#include <boost/spirit/include/qi_grammar.hpp>
-#include <boost/spirit/include/qi_core.hpp>
 #include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/qi_parse.hpp>
-#include <boost/spirit/include/qi_nonterminal.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
-#include <boost/spirit/include/phoenix_core.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-#include <boost/spirit/include/phoenix_object.hpp>
-#include <boost/fusion/include/io.hpp>
 #include <string>
 
 namespace pip {

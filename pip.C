@@ -19,6 +19,7 @@ using std::string;
 #include <vector>
 using std::vector;
 
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -31,6 +32,7 @@ namespace po = boost::program_options;
 #include "fastq.h"
 #include "newpack.h"
 #include "Piper.h"
+#include "stream_trimmomatic.h"
 using namespace pip;
 
 sqlite3 *db;
@@ -59,6 +61,14 @@ namespace pip {
 
 void fast_read(string filename, string& out)
 {
+	int fd = open(filename.c_str(), O_RDONLY);
+	if (fd) {
+		out.resize(lseek(fd,0,SEEK_END));
+		lseek(fd,0,SEEK_SET);
+		read(fd,&out[0],out.size());
+		close(fd);
+	}
+		/*
 	std::FILE *fp = std::fopen(filename.c_str(), "rb");
 	if (fp) {
 		std::fseek(fp, 0, SEEK_END);
@@ -66,7 +76,7 @@ void fast_read(string filename, string& out)
 		std::rewind(fp);
 		std::fread(&out[0],1,out.size(),fp);
 		std::fclose(fp);
-	}
+	}*/
 }
 
 void fast_insert(sqlite3* db, std::string& input)
@@ -111,7 +121,7 @@ void fast_insert(sqlite3* db, std::string& input)
 	  sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
 		sqlite3_finalize(stmt);
 		auto endClock = clock() - startClock;
-		printf("%d sequences imported in %4.2f seconds\n",n,endClock/(double)CLOCKS_PER_SEC);
+		printf("Pip: %d sequences imported in %4.2f seconds\n",n,endClock/(double)CLOCKS_PER_SEC);
 	}
 }
 
@@ -205,7 +215,29 @@ int normalize_db(string dbfile)
 	auto start = clock();
 	sqlite3_exec(db,sqlite::normalize_rawreads,NULL,NULL,NULL);
 	sqlite3_close(db);
-	printf("Normalized database in %4.2f seconds\n",(clock()-start)/(double)CLOCKS_PER_SEC);
+	printf("Pip: Normalized database in %4.2f seconds\n",(clock()-start)/(double)CLOCKS_PER_SEC);
+	return OK;
+}
+
+int stream_db(string dbfile, string app)
+{
+	if (app != "trimmo") // just a stopgap check for now
+		return 1;
+	// Check that we have a database
+	int check_result = check_db(dbfile);
+	if (check_result != OK) { // if there is anything wrong...
+		cout << MESSAGE_STRINGS[check_result] << endl;
+		return check_result;
+	}
+	sqlite::unpackFn(db);
+	// Checks all done, proceed to stream
+	auto start = clock();
+	stream::Trimmomatic stream;
+	stream.start_stream(db);
+	sqlite3_close(db);
+	//cout << "Pip: Streamed data in " <<  << " seconds" << endl;
+	printf("Pip: Streamed data in %4.2f seconds\n",(clock()-start)/(double)CLOCKS_PER_SEC);
+	//cout.flush();
 	return OK;
 }
 
@@ -230,7 +262,6 @@ int main(int argc, char *argv[])
 	po::notify(vm);
 	
 	if (vm.count("help")) { // show help
-		help:
 		cout << desc << endl;
 		return 1;
 	}
@@ -263,22 +294,20 @@ int main(int argc, char *argv[])
 		}
 		sqlite3_close(db);
 		printf("Merged %lu files in %4.2f seconds\n",input_files.size(),(clock()-start)/(double)CLOCKS_PER_SEC);
-		if (vm.count("normalize")) { // merge and normalize in a single operation
-			normalize_db(dbfile);
-		}
-		return 0;
+		// if (vm.count("normalize")) { // merge and normalize in a single operation
+		// 	normalize_db(dbfile);
+		// }
+		//return 0;
 	}
 	
 	if (vm.count("normalize")) { // normalize operation
 		normalize_db(dbfile);
-		return 0;
+		//return 0;
 	}
 	
 	if (vm.count("stream")) { // stream operation
-		// Check that we have a database
-		// Check that the application is supported
-		// Do the streaming
-		return 0;
+		stream_db(dbfile,vm["stream"].as<string>());
+		//return 0;
 	}
 	
 	// Available commands (tentative):
@@ -288,6 +317,6 @@ int main(int argc, char *argv[])
 	// define workflow?
 
 	// If we get here doing nothing, assume the user doesn't know what to do
-	goto help;
+	sqlite3_close(db);
   return 0;
 }

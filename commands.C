@@ -24,7 +24,9 @@ namespace pip
 			"CREATE TABLE flowcells(name TEXT);"
 			"CREATE TABLE index_sequences(name TEXT);";
 		const char* insert_rawreads = "INSERT INTO rawreads VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);";
-		
+		const char* get_reads = "SELECT i.name,r.runid,f.name,r.lane,r.tile,r.x,r.y,r.pair,r.filter,r.control,ind.name,unpack(r.data,length(r.data),r.qualityformat) "
+			"FROM reads r,instruments i,flowcells f,index_sequences ind "
+			"WHERE r.instrumentid=i.rowid AND r.flowcellid=f.rowid AND r.index_sequence=ind.rowid;";
 		// Normalization - we don't want to normalize everything - only the 
 		// components that take up a lot of space (such as TEXT). SQLite already
 		// saves int space if they are unused.
@@ -36,9 +38,6 @@ namespace pip
 			"FROM rawreads r,instruments i,flowcells f,index_sequences ind "
 			"WHERE r.instrument=i.name AND r.flowcell=f.name AND r.index_sequence=ind.name;"
 			"DROP TABLE rawreads;VACUUM"; // drop rawreads and vacuum up the space
-		const char* get_reads = "SELECT i.name,r.runid,f.name,r.lane,r.tile,r.x,r.y,r.pair,r.filter,r.control,ind.name,unpack(r.data,length(r.data),r.qualityformat) "
-			"FROM reads r,instruments i,flowcells f,index_sequences ind "
-			"WHERE r.instrumentid=i.rowid AND r.flowcellid=f.rowid AND r.index_sequence=ind.rowid;";
 		int unpackFn(sqlite3 *db) {
 			return sqlite3_create_function(
 				db,
