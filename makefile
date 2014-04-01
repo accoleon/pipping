@@ -3,15 +3,15 @@
 CXX = g++
 CC = g++
 CXXFLAGS += -O3 -Wall -Wextra -pedantic-errors -std=c++11 -march=native
-LDFLAGS +=
+LDFLAGS += 
 
 all: pip
 
 pip: pip.o newpack.o commands.o stream_trimmomatic.o sqlite3.o
-	${LINK.C} -o $@ $^ -lboost_program_options
+	${LINK.C} -o $@ $^ -lboost_program_options -ldl
 
 gref:	gref.o FASTQSequence.o newpack.o sqlite3.o
-	${LINK.C} -o $@ $^
+	${LINK.C} -o $@ $^ -ldl
 	
 sqlite3.o: sqlite3.c
 	gcc -O3 -march=native -o $(@) -c $^
