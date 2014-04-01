@@ -11,6 +11,7 @@
 using std::ifstream;
 using std::ofstream;
 #include <iostream>
+using std::cerr;
 using std::cin;
 using std::cout;
 using std::endl;
@@ -26,6 +27,9 @@ using std::vector;
 #include <sqlite3.h>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
+#include <boost/interprocess/file_mapping.hpp>
+#include <boost/interprocess/mapped_region.hpp>
+namespace bi = boost::interprocess;
 
 #include "commands.h"
 #include "FASTQSequence.h"
@@ -59,45 +63,42 @@ namespace pip {
 	};
 } /* pip */
 
-void fast_read(string filename, string& out)
+// Rationale: our inputs are huge (in the 30+gb range, possibly higher), and
+// the original technique of reading the entire file into a string would not
+// work on most computers (an aciss compute node has 72gb of ram), and we would
+// need alternative methods. Current candidates are:
+// 1. Memory mapping - platform dependent and no experience atm - done ~103k inserts per sec
+// 2. Read in big ram chunks - performance might be affected
+// 3. Capability dependent - the function checks for system memory size then
+// 		determines which method to use; e.g., input > memory, chunk. input < mem,
+//		read entire file into string. (appears to be the most flexible)
+// Boost memory mapped files seem to be the easiest and performant way
+// to insert large files into the db.
+int mm_read_and_insert(const string& filename, sqlite3* db)
 {
-	int fd = open(filename.c_str(), O_RDONLY);
-	if (fd) {
-		out.resize(lseek(fd,0,SEEK_END));
-		lseek(fd,0,SEEK_SET);
-		read(fd,&out[0],out.size());
-		close(fd);
-	}
-		/*
-	std::FILE *fp = std::fopen(filename.c_str(), "rb");
-	if (fp) {
-		std::fseek(fp, 0, SEEK_END);
-		out.resize(std::ftell(fp));
-		std::rewind(fp);
-		std::fread(&out[0],1,out.size(),fp);
-		std::fclose(fp);
-	}*/
-}
-
-void fast_insert(sqlite3* db, std::string& input)
-{
-	using boost::spirit::ascii::space;
-	typedef std::string::const_iterator iterator_type;
-	typedef pip::fastq_parser<iterator_type> fastq_parser;
-	fastq_parser g;
-	if (!input.empty()) {
+	// create a file mapping from filename in readonly mode
+	bi::file_mapping m_file(filename.c_str(),bi::read_only);
+	// create the mapped region of the entire file in read only mode
+	bi::mapped_region region(m_file,bi::read_only);
+	region.advise(bi::mapped_region::advice_sequential); // inform the OS of our access pattern
+	auto* addr = (char*)region.get_address(); // starting pointer
+	auto size = region.get_size();
+	pip::fastq_parser<const char*> g;
+	
+	if (size > 0) {
 	  auto startClock = clock();
 	  sqlite3_stmt *stmt;
 		char *sql_error_msg = 0;
 	  if (sqlite3_prepare_v2(db,sqlite::insert_rawreads,-1,&stmt, NULL) != SQLITE_OK) {
 	  	cout << sqlite3_errmsg(db) << endl;
+			return 0;
 	  } 
 	  sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
-		int n = 0;
+		unsigned long long n = 0; // we will be dealing with huge numbers here
 		pip::fastq fq;
-		auto iter = input.cbegin();
-		auto end = input.cend();
-		while (parse(iter,end,g,fq)) {
+		char const* f(addr); // first iterator/pointer
+		char const* l(f + size); // last iterator/pointer
+		while (parse(f,l,g,fq)) {
 			pack::Pack packed(fq.sequence,fq.quality,1);
 			// Bind parameters to sequence data
 			sqlite3_bind_text(stmt,1,fq.instrument.c_str(),-1,SQLITE_TRANSIENT);
@@ -117,32 +118,32 @@ void fast_insert(sqlite3* db, std::string& input)
 	    sqlite3_reset(stmt);
 			++n;
 			fq = {};
+			// Show an update every 100k inserts
+			if (n % 100000 == 0)
+				cerr << "Inserted " << n << " sequences...\r";
 		}
 	  sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
 		sqlite3_finalize(stmt);
 		auto endClock = clock() - startClock;
-		printf("Pip: %d sequences imported in %4.2f seconds\n",n,endClock/(double)CLOCKS_PER_SEC);
+		printf("Pip: %llu sequences imported in %4.2f seconds\n",n,endClock/(double)CLOCKS_PER_SEC);
+		return n; // return number of rows inserted
 	}
+	return 0;
 }
 
+// Initialize a new sqlite database
 bool init_db(string dbname)
 {
   char *sql_error_msg = 0;
-  //string command(pip::sqlite::create_db);
-  
   int status = sqlite3_open(dbname.c_str(), &db);
   
   if (status == SQLITE_OK) {
-		//sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
     sqlite3_exec(db, sqlite::create_tbls, NULL, NULL, &sql_error_msg);
-		//cout << sql_error_msg;
-		//status = sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
   }
   
   if (status == SQLITE_OK) {
 	  // create functions and bind it to the db
 	  sqlite::unpackFn(db);
-		//cout << "unpack function bound to db\n";
     return true;
   }  
   else {
@@ -151,6 +152,7 @@ bool init_db(string dbname)
   }
 }
 
+// Test function to dump the entire database into a fastq file
 void makefq(sqlite3* db)
 {
 	// dumps the db reads table into a fastq file
@@ -183,6 +185,7 @@ void makefq(sqlite3* db)
 	printf("%d sequences written in %4.2f seconds\n",n,(clock() - start)/(double)CLOCKS_PER_SEC);
 }
 
+// Check if the database is valid according to our specifications
 int check_db(string dbfile)
 {
 	// File does not exist - we can create it
@@ -203,6 +206,9 @@ int check_db(string dbfile)
 	}
 }
 
+// Normalize the database by moving the duplicated data such as instrument,
+// flowcell, index_sequence into separate tables and replace them with int 
+// rowids
 int normalize_db(string dbfile)
 {
 	// Check that we have a database
@@ -212,13 +218,25 @@ int normalize_db(string dbfile)
 		return check_result;
 	}
 	// Checks all done, proceed
+	// TODO some sort of progress indicator, for large dbs
+	auto allstart = clock();
+	sqlite3_exec(db,"PRAGMA mmap_size=32212254720;",NULL,NULL,NULL);
 	auto start = clock();
+	cerr << "Pip: normalizing the database...\n";
 	sqlite3_exec(db,sqlite::normalize_rawreads,NULL,NULL,NULL);
+	auto elapsed = clock() - start;
+	cerr << "Pip: normalization complete in " << elapsed/(double)CLOCKS_PER_SEC << " seconds\n";
+	cerr << "Pip: vacuuming the database to recover free space...\n";
+	start = clock();
+	sqlite3_exec(db,"VACUUM;",NULL,NULL,NULL);
 	sqlite3_close(db);
-	printf("Pip: Normalized database in %4.2f seconds\n",(clock()-start)/(double)CLOCKS_PER_SEC);
+	elapsed = clock() - start;
+	cerr << "Pip: vacuum complete in " << elapsed/(double)CLOCKS_PER_SEC << " seconds\n";
+	printf("Pip: Normalized database in %4.2f seconds\n",(clock()-allstart)/(double)CLOCKS_PER_SEC);
 	return OK;
 }
 
+// Stream the database to specified application
 int stream_db(string dbfile, string app)
 {
 	if (app != "trimmo") // just a stopgap check for now
@@ -287,27 +305,22 @@ int main(int argc, char *argv[])
 		}
 		// Checks all done, proceed
 		auto start = clock();
+		int total_inserted = 0;
 		for (auto& file : input_files) {
 			string input;
-			fast_read(file,input);
-			fast_insert(db,input);
+			total_inserted += mm_read_and_insert(file,db);
 		}
+		
 		sqlite3_close(db);
 		printf("Merged %lu files in %4.2f seconds\n",input_files.size(),(clock()-start)/(double)CLOCKS_PER_SEC);
-		// if (vm.count("normalize")) { // merge and normalize in a single operation
-		// 	normalize_db(dbfile);
-		// }
-		//return 0;
 	}
 	
 	if (vm.count("normalize")) { // normalize operation
 		normalize_db(dbfile);
-		//return 0;
 	}
 	
 	if (vm.count("stream")) { // stream operation
 		stream_db(dbfile,vm["stream"].as<string>());
-		//return 0;
 	}
 	
 	// Available commands (tentative):
@@ -316,7 +329,6 @@ int main(int argc, char *argv[])
 	// do (workflow)
 	// define workflow?
 
-	// If we get here doing nothing, assume the user doesn't know what to do
 	sqlite3_close(db);
   return 0;
 }

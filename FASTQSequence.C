@@ -28,7 +28,7 @@ FASTQSequence::FASTQSequence()
 
 
 
-const int FASTQSequence::size() 
+int FASTQSequence::size() const
 {
 	if (_seq.empty() && !_cseq.empty()) { // lazy
 		sequence();
@@ -56,7 +56,7 @@ const string &FASTQSequence::defline()
   return _def1;
 }
 
-const string &FASTQSequence::sequence() 
+const string &FASTQSequence::sequence() const 
 {
 	if (_seq.empty() && !_cseq.empty() && !quality().empty()) { 
 		// _seq = pack::unpackSequence(_cseq);
@@ -72,7 +72,7 @@ const vector<bool> &FASTQSequence::compressed_sequence() {
 	return _cseq;
 }
 
-const string &FASTQSequence::quality() 
+const string &FASTQSequence::quality() const
 {
 	if (_qual.empty() && !_cqual.empty()) {
 		// _qual = pack::unpackQuality(pack::Lossless, _cqual);

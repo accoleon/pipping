@@ -29,10 +29,10 @@ public:
   FASTQSequence();
   bool fetch(istream &);
   friend ostream& operator<<(ostream &, const FASTQSequence &);  
-  const int size();
+  int size() const;
   const string &defline();
-  const string &sequence();
-  const string &quality();
+  const string &sequence() const;
+  const string &quality() const;
   const std::vector<bool> &compressed_sequence();
   const std::vector<bool> &compressed_quality();
   void parse_defline();

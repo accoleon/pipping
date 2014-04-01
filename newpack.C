@@ -58,7 +58,7 @@ namespace pip {
 			}
 			v.reserve(sequenceLength_);
 			unsigned char c = 0; // temporary output character
-			for (auto i = 0; i<sequenceLength_; ++i) {
+			for (unsigned int i = 0; i<sequenceLength_; ++i) {
 				// 0b00000110 = 6 bitmask, we want the 2 bits 3 from the right  
 				c |= (sequence[i] & 6) << 5; // pack sequence character into the leftmost 2 bits
 				switch (qualityFormat_) {
@@ -81,7 +81,7 @@ namespace pip {
 			}
 			v.reserve(sequenceLength_);
 			unsigned char c = 0; // temporary output character
-			for (auto i = 0; i<sequenceLength_; ++i) {
+			for (unsigned int i = 0; i<sequenceLength_; ++i) {
 				// give different bases different int ranges
 				// 'A': 0-49, 'C': 50-99, 'T': 100-149, 'G': 150-199, 'N': 200+
 				switch (sequence[i]) { 
@@ -150,7 +150,7 @@ namespace pip {
 					case Illumina18:
 						outQuality += (c+Illu18QFLower);
 						break;
-						default: break;
+					default: break;
 				}
 			}
 		}

@@ -46,6 +46,7 @@ namespace pip {
 			void create_pipes();
 			void cleanup_pipes();
 			void open_pipes(sqlite3*);
+			void open_pipes(sqlite3*,int);
 			void store_deltas(sqlite3*);
 			bool write_out(std::string&,const ustring&);
 			bool read_log();

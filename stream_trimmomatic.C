@@ -17,6 +17,7 @@ using std::string;
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include <sqlite3.h>
 
@@ -43,7 +44,7 @@ namespace pip {
 		const char* Trimmomatic::file_prefix = "pip-stream-trimmomatic";
 		const char* Trimmomatic::create_delta_tbl = "DROP TABLE IF EXISTS trimmomatic_deltas;CREATE TABLE trimmomatic_deltas(readid INT,surviving_sequence_len INT,trim_start INT,last_base INT,trim_end INT);";
 		const char* Trimmomatic::insert_deltas = "INSERT INTO trimmomatic_deltas VALUES(?1,?2,?3,?4,?5);";
-		const char* Trimmomatic::get_reads = "SELECT r.rowid,r.pair,unpack(r.data,length(r.data),r.qualityformat) FROM reads r;";
+		const char* Trimmomatic::get_reads = "SELECT r.rowid,r.pair,unpack(r.data,length(r.data),r.qualityformat) FROM reads r WHERE r.pair = ?1;";
 		void Trimmomatic::start_stream(sqlite3* db)
 		{
 			// for now, assume we are always working on paired end data
@@ -93,8 +94,8 @@ namespace pip {
 			// but we still want to reduce the amount of fread calls due to its
 			// associated overhead. Since we are running on modern computers, we could
 			// work with a large buffer and reduce the number of freads we have to do.
-			const int buffer_size = 4096;
-			char buffer[buffer_size]; // just a power of 2 buffer
+			const int buffer_size = 4096; // just a power of 2 buffer
+			char buffer[buffer_size]; 
 			int n = 0;
 			while (!feof(fp)) {
 				auto read = fread(buffer,1,buffer_size,fp);
@@ -102,8 +103,6 @@ namespace pip {
 				++n;
 			}
 			fclose(fp);
-			cout << "number of freads/appends actually called while reading log: " << n << endl;
-			//cout << log << " closed" << endl;
 			return true;
 		}
 		
@@ -133,12 +132,25 @@ namespace pip {
 				sqlite3_bind_int(stmt,5,tr.trim_end); // trimmed from end
 				sqlite3_step(stmt);
 		    sqlite3_reset(stmt);
-				tr = {};
+				tr = {}; // reset the struct
 			}
 		  sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
 			sqlite3_finalize(stmt);
 		}
 		
+		void Trimmomatic::open_pipes(sqlite3* db, int pair)
+		{
+			sqlite3_stmt *stmt = NULL;
+			int rc = sqlite3_prepare_v2(db,get_reads,-1,&stmt,NULL);
+			if (rc != SQLITE_OK) {
+				cout << "SQL command failed: " << sqlite3_errmsg(db) << endl;
+				return;
+			}
+			sqlite3_bind_int(stmt,1,pair);
+			while (sqlite3_step(stmt) == SQLITE_ROW) {
+				
+			}
+		}
 		void Trimmomatic::open_pipes(sqlite3* db)
 		{
 			sqlite3_stmt *stmt = NULL;
@@ -147,22 +159,47 @@ namespace pip {
 				cout << "SQL command failed: " << sqlite3_errmsg(db) << endl;
 				return;
 			}
-			ustring output1, output2;
+			//ustring output1, output2;
 			// once metadata is stored we can use metadata to initialize our output
 			// to the correct size, should be a performance increases
-			output1.reserve(100000 * 200); // currently expect these sizes
-			output2.reserve(100000 * 200);
-			ustring* co = &output1; // current output string used
+			//output1.reserve(100000 * 200); // currently expect these sizes
+			//output2.reserve(100000 * 200);
+			//ustring* co = &output1; // current output string used
+			// Open the output pipes in nonblocking mode
+			std::cerr << "Opening output pipes in nonblocking mode\n";
+			int fd1 = -1, fd2 = -1;
+			while (fd1 == -1 && fd2 == -1) {
+				fd1 = open(in1.c_str(),O_WRONLY | O_NONBLOCK);
+				fd2 = open(in2.c_str(),O_WRONLY | O_NONBLOCK);
+			}
+			// int fd1 = open(in1.c_str(),O_WRONLY | O_NONBLOCK);
+// 			if (fd1 == -1)
+// 				perror("fd not open: ");
+// 			int fd2 = open(in2.c_str(),O_RDWR | O_NONBLOCK);
+			int fd3 = open(log.c_str(),O_RDONLY | O_NONBLOCK);
+			if (fd3 == -1)
+				perror("logfile failed: ");
+			//std::cerr << "pipes opened, proceeding to set fdset\n";
+			fd_set writefds;
+			FD_ZERO(&writefds);
+			//std::cerr << "fdzero done, fd1 is " << fd1 << "\n";
+			FD_SET(fd1,&writefds);
+			//std::cerr << "fdset done for fd1\n";
+			FD_SET(fd2,&writefds);
+			// Block while we wait for trimmomatic to open pipes
+			select(fd3+1,NULL,&writefds,NULL,NULL);
+			std::cerr << "Block lifted, trimmomatic connected to pipes\n";
+			int current_fd = fd1;
 			int n = 0;
 			auto start = clock();
 			while (sqlite3_step(stmt) == SQLITE_ROW) {
 				unsigned char pair;
 				if (sqlite3_column_int(stmt,1) == 1) {
-					co = &output1;
+					current_fd = fd1;
 					pair = '1';
 				}
 				else {
-					co = &output2;
+					current_fd = fd2;
 					pair = '2';
 				}
 				// rationale: trimmomatic does not need or care about the defline,
@@ -172,35 +209,42 @@ namespace pip {
 				// are listed in the log, thus all of the output fastq files from
 				// trimmomatic are rendered useless - we can recreate the actual trim
 				// from the log.
-				*co += '@';
-				*co += sqlite3_column_text(stmt,0); // rowid
-				*co += '\n';
-				*co += sqlite3_column_text(stmt,2); // sequence\n+\nquality
-				*co += '\n';
+				write(current_fd,"@",1);
+				write(current_fd,sqlite3_column_text(stmt,0),sqlite3_column_bytes(stmt,0));
+				write(current_fd,"\n",1);
+				write(current_fd,sqlite3_column_text(stmt,2),sqlite3_column_bytes(stmt,2));
+				write(current_fd,"\n",1);
+				// *co += '@';
+// 				*co += sqlite3_column_text(stmt,0); // rowid
+// 				*co += '\n';
+// 				*co += sqlite3_column_text(stmt,2); // sequence\n+\nquality
+// 				*co += '\n';
 				++n;
 			}
 			sqlite3_finalize(stmt);
 			printf("Pip: %d sequences loaded in %4.2f seconds\n",n,(double)(clock()-start)/CLOCKS_PER_SEC);
 			
+			close(fd1);
+			close(fd2);
 			// We need 2 threads to serve both input files simultaneously
 			// Using C++11 futures (so we can display a progress indicator)
-			auto tin1 = std::async(std::launch::async,[&] { return write_out(in1,output1); });
-			auto tin2 = std::async(std::launch::async,[&] { return write_out(in2,output2); });
+			//auto tin1 = std::async(std::launch::async,[&] { return write_out(in1,output1); });
+			//auto tin2 = std::async(std::launch::async,[&] { return write_out(in2,output2); });
 			
 			// We need 1 thread to receive the log file
 			auto tlog = std::async(std::launch::async,&Trimmomatic::read_log,this);
 			
-			// Display fancy animation while we wait for threads
-			std::chrono::milliseconds span (100);
-			static const char spinner[] = "/-\\|";
-			int i = 0;
-			while (tin1.wait_for(span)==std::future_status::timeout || tin2.wait_for(span)==std::future_status::timeout || tlog.wait_for(span)==std::future_status::timeout ) {
-					std::cerr << "Streaming..." << spinner[i % sizeof(spinner)] << "\r";
-					++i;
-			}
-			tin1.get();
-			tin2.get();
-			tlog.get();
+			// // Display fancy animation while we wait for threads
+// 			std::chrono::milliseconds span (100);
+// 			static const char spinner[] = "/-\\|";
+// 			int i = 0;
+// 			while (tin1.wait_for(span)==std::future_status::timeout || tin2.wait_for(span)==std::future_status::timeout || tlog.wait_for(span)==std::future_status::timeout ) {
+// 					std::cerr << "Streaming..." << spinner[i % sizeof(spinner)] << "\r";
+// 					++i;
+// 			}
+// 			tin1.get();
+// 			tin2.get();
+// 			tlog.get();
 		}
 
 	} /* stream */

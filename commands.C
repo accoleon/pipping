@@ -12,17 +12,21 @@ using namespace pip::pack;
 
 // http://probertson.com/articles/2009/11/30/multi-table-insert-one-statement-air-sqlite/
 // Reference for efficient and normalized inserts
+// Ended up not using it - using triggers on inserts yields very low inserts-
+// per-second compared to bulk inserts then normalizing later
 
 namespace pip
 {
 	namespace sqlite
 	{
+		
 		const char* create_tbls = "CREATE TABLE rawreads(instrument TEXT,runid INT,flowcell TEXT,lane INT,tile INT,x INT,y INT,pair INT,filter INT,control INT,index_sequence TEXT,qualityformat INT,data BLOB);"
 			"CREATE TABLE reads(instrumentid INT,runid INT,flowcellid INT,lane INT,tile INT,x INT,y INT,pair INT,filter INT,control INT,index_sequence INT,qualityformat INT,data BLOB);"
-			"CREATE TABLE meta(date TEXT,operation TEXT,table_involved TEXT,rows_involved);"
+			"CREATE TABLE meta(date INT,operation INT,table_involved TEXT,sequences INT,sequence_len INT);"
 			"CREATE TABLE instruments(name TEXT);"
 			"CREATE TABLE flowcells(name TEXT);"
 			"CREATE TABLE index_sequences(name TEXT);";
+		
 		const char* insert_rawreads = "INSERT INTO rawreads VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13);";
 		const char* get_reads = "SELECT i.name,r.runid,f.name,r.lane,r.tile,r.x,r.y,r.pair,r.filter,r.control,ind.name,unpack(r.data,length(r.data),r.qualityformat) "
 			"FROM reads r,instruments i,flowcells f,index_sequences ind "
@@ -31,13 +35,16 @@ namespace pip
 		// components that take up a lot of space (such as TEXT). SQLite already
 		// saves int space if they are unused.
 		// Normalize instrument id, flowcell id, index sequence
-		const char* normalize_rawreads = "INSERT INTO instruments SELECT DISTINCT instrument FROM rawreads;"
+		const char* normalize_rawreads = ";"
+			"INSERT INTO instruments SELECT DISTINCT instrument FROM rawreads;"
 			"INSERT INTO flowcells SELECT DISTINCT flowcell FROM rawreads;"
 			"INSERT INTO index_sequences SELECT DISTINCT index_sequence FROM rawreads;"
 			"INSERT INTO reads SELECT i.rowid,r.runid,f.rowid,r.lane,r.tile,r.x,r.y,r.pair,r.filter,r.control,ind.rowid,r.qualityformat,r.data "
 			"FROM rawreads r,instruments i,flowcells f,index_sequences ind "
 			"WHERE r.instrument=i.name AND r.flowcell=f.name AND r.index_sequence=ind.name;"
-			"DROP TABLE rawreads;VACUUM"; // drop rawreads and vacuum up the space
+			"DROP TABLE rawreads;"; // drop rawreads
+		
+		// Attach the unpack C++ function to sqlite db
 		int unpackFn(sqlite3 *db) {
 			return sqlite3_create_function(
 				db,
@@ -50,6 +57,7 @@ namespace pip
 				NULL);
 		}
 		
+		// Actual SQL function that unpacks the compressed blob
 		void unpack(sqlite3_context *context, int argc, sqlite3_value **argv) {
 			if (argc == 3) {
 				auto data = (unsigned char*)sqlite3_value_blob(argv[0]);
@@ -64,6 +72,14 @@ namespace pip
 				return;
 			}
 			sqlite3_result_null(context);
+		}
+		
+		// Logging function for database
+		void log(sqlite3* db, Op operation, const string& table_involved, int sequences, int sequence_len)
+		{
+			const char* insert_meta = "INSERT INTO meta VALUES (date('now'),?1,?2,?3,?4);";
+			sqlite3_stmt *stmt;
+			sqlite3_prepare_v2(db,insert_meta,-1,&stmt, NULL);
 		}
 	} /* sqlite */
 } /* pip */

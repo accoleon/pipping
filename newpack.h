@@ -44,7 +44,7 @@ namespace pip {
 			QualityFormat qualityFormat_;
 			std::vector<unsigned char> v;
 			void pack(const std::string& sequence, const std::string& quality);
-			void losslessPack(const std::string& sequence, const std::string& quality);
+			inline void losslessPack(const std::string& sequence, const std::string& quality);
 		};
 		
 		void losslessUnpack(

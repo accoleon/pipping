@@ -2,7 +2,7 @@
 
 CXX = g++
 CC = g++
-CXXFLAGS += -O3 -Wall -std=c++11
+CXXFLAGS += -O3 -Wall -Wextra -pedantic-errors -std=c++11
 LDFLAGS +=
 
 all: pip
@@ -10,8 +10,8 @@ all: pip
 pip: pip.o newpack.o commands.o stream_trimmomatic.o
 	${LINK.C} -o $@ $^ -lsqlite3 -lboost_program_options
 
-gref:	gref.o FASTQSequence.o
-	${LINK.C} -o $@ $^
+gref:	gref.o FASTQSequence.o newpack.o
+	${LINK.C} -o $@ $^ -lsqlite3
 	
 tests: testPack testFASTQ
 	
