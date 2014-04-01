@@ -4,7 +4,7 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
-#include <sqlite3.h>
+#include "sqlite3.h"
 
 namespace pip {
 	namespace sqlite {
