@@ -24,7 +24,7 @@ using std::vector;
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <sqlite3.h>
+#include "sqlite3.h"
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 #include <boost/interprocess/file_mapping.hpp>

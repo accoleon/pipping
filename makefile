@@ -7,11 +7,14 @@ LDFLAGS +=
 
 all: pip
 
-pip: pip.o newpack.o commands.o stream_trimmomatic.o
-	${LINK.C} -o $@ $^ -lsqlite3 -lboost_program_options
+pip: pip.o newpack.o commands.o stream_trimmomatic.o sqlite3.o
+	${LINK.C} -o $@ $^ -lboost_program_options
 
-gref:	gref.o FASTQSequence.o newpack.o
-	${LINK.C} -o $@ $^ -lsqlite3
+gref:	gref.o FASTQSequence.o newpack.o sqlite3.o
+	${LINK.C} -o $@ $^
+	
+sqlite3.o: sqlite3.c
+	gcc -O3 -march=native -o $(@) -c $^
 	
 tests: testPack testFASTQ
 	

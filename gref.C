@@ -20,7 +20,7 @@ using std::ifstream;
 #include <string>
 using std::string;
 
-#include <sqlite3.h>
+#include "sqlite3.h"
 
 #include "FASTQSequence.h"
 #include "newpack.h"
