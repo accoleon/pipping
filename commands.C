@@ -3,7 +3,6 @@
 using std::string;
 #include <vector>
 using std::vector;
-#include <sqlite3.h>
 #include "commands.h"
 #include "newpack.h"
 using namespace pip::pack;
