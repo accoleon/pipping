@@ -7,3 +7,5 @@ ProfileResults.trace
 *.db
 Trimmomatic-0.32
 trimming_log.txt
+*.s
+gref

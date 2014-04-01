@@ -2,7 +2,7 @@
 
 CXX = g++
 CC = g++
-CXXFLAGS += -O3 -Wall -Wextra -pedantic-errors -std=c++11
+CXXFLAGS += -O3 -Wall -Wextra -pedantic-errors -std=c++11 -march=native
 LDFLAGS +=
 
 all: pip

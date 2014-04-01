@@ -70,22 +70,22 @@ int main(int argc, char *argv[])
   sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
 	
   while (x.fetch(readfile)) {
-		x.parse_defline();
+		x.parse_defline(); // this line probably takes the most time
     pip::pack::Pack packed(x.sequence(),x.quality(),1);
-			// Bind parameters to sequence data
-			sqlite3_bind_text(stmt,1,x.instrument_id().c_str(),-1,SQLITE_TRANSIENT);
-			sqlite3_bind_int(stmt,2,x.run_id());
-			sqlite3_bind_text(stmt,3,x.flow_cell_id().c_str(),-1,SQLITE_TRANSIENT);
-			sqlite3_bind_int(stmt,4,x.flow_cell_lane());
-			sqlite3_bind_int(stmt,5,x.tile());
-			sqlite3_bind_int(stmt,6,x.x());
-			sqlite3_bind_int(stmt,7,x.y());
-			sqlite3_bind_int(stmt,8,x.pair());
-			sqlite3_bind_int(stmt,9,x.filter() == true ? 1:0);
-			sqlite3_bind_int(stmt,10,x.control_bits());
-			sqlite3_bind_text(stmt,11,x.index().c_str(),-1,SQLITE_TRANSIENT);
-			sqlite3_bind_int(stmt,12,packed.qualityFormat());
-	    sqlite3_bind_blob(stmt,13,packed.rawData(),x.sequence().length(),SQLITE_TRANSIENT);
+		// Bind parameters to sequence data
+		sqlite3_bind_text(stmt,1,x.instrument_id().c_str(),-1,SQLITE_TRANSIENT);
+		sqlite3_bind_int(stmt,2,x.run_id());
+		sqlite3_bind_text(stmt,3,x.flow_cell_id().c_str(),-1,SQLITE_TRANSIENT);
+		sqlite3_bind_int(stmt,4,x.flow_cell_lane());
+		sqlite3_bind_int(stmt,5,x.tile());
+		sqlite3_bind_int(stmt,6,x.x());
+		sqlite3_bind_int(stmt,7,x.y());
+		sqlite3_bind_int(stmt,8,x.pair());
+		sqlite3_bind_int(stmt,9,x.filter() == true ? 1:0);
+		sqlite3_bind_int(stmt,10,x.control_bits());
+		sqlite3_bind_text(stmt,11,x.index().c_str(),-1,SQLITE_TRANSIENT);
+		sqlite3_bind_int(stmt,12,packed.qualityFormat());
+    sqlite3_bind_blob(stmt,13,packed.rawData(),x.sequence().length(),SQLITE_TRANSIENT);
     if (sqlite3_step(stmt) != SQLITE_DONE) {
         cout << "fail..." << endl;
     }
