@@ -19,7 +19,7 @@ using std::string;
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <sqlite3.h>
+#include "sqlite3.h"
 
 #include "commands.h"
 #include "stream_trimmomatic.h"
