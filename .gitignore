@@ -9,3 +9,6 @@ Trimmomatic-0.32
 trimming_log.txt
 *.s
 gref
+out.test
+testRawWrite
+testfile
