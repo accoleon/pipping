@@ -93,7 +93,7 @@ int mm_read_and_insert(const string& filename, sqlite3* db)
 	  	cout << sqlite3_errmsg(db) << endl;
 			return 0;
 	  } 
-	  sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &sql_error_msg);
+	  sqlite3_exec(db, "PRAGMA cache_size=400000;PRAGMA journal_mode=MEMORY;PRAGMA locking_mode=EXCLUSIVE;PRAGMA count_changes=OFF;PRAGMA auto_vacuum=NONE;PRAGMA temp_store = MEMORY;PRAGMA synchronous=OFF;BEGIN EXCLUSIVE TRANSACTION", NULL, NULL, &sql_error_msg);
 		unsigned long long n = 0; // we will be dealing with huge numbers here
 		pip::fastq fq;
 		char const* f(addr); // first iterator/pointer
@@ -101,9 +101,9 @@ int mm_read_and_insert(const string& filename, sqlite3* db)
 		while (parse(f,l,g,fq)) {
 			pack::Pack packed(fq.sequence,fq.quality,1);
 			// Bind parameters to sequence data
-			sqlite3_bind_text(stmt,1,fq.instrument.c_str(),-1,SQLITE_TRANSIENT);
+			sqlite3_bind_text(stmt,1,fq.instrument.c_str(),-1,SQLITE_STATIC);
 			sqlite3_bind_int(stmt,2,fq.run);
-			sqlite3_bind_text(stmt,3,fq.flowcell.c_str(),-1,SQLITE_TRANSIENT);
+			sqlite3_bind_text(stmt,3,fq.flowcell.c_str(),-1,SQLITE_STATIC);
 			sqlite3_bind_int(stmt,4,fq.lane);
 			sqlite3_bind_int(stmt,5,fq.tile);
 			sqlite3_bind_int(stmt,6,fq.x);
@@ -111,7 +111,7 @@ int mm_read_and_insert(const string& filename, sqlite3* db)
 			sqlite3_bind_int(stmt,8,fq.pair);
 			sqlite3_bind_int(stmt,9,fq.filter == 'Y' ? 1:0);
 			sqlite3_bind_int(stmt,10,fq.control);
-			sqlite3_bind_text(stmt,11,fq.index.c_str(),-1,SQLITE_TRANSIENT);
+			sqlite3_bind_text(stmt,11,fq.index.c_str(),-1,SQLITE_STATIC);
 			sqlite3_bind_int(stmt,12,packed.qualityFormat());
 	    sqlite3_bind_blob(stmt,13,packed.rawData(),fq.sequence.length(),SQLITE_TRANSIENT);
 			sqlite3_step(stmt);
@@ -122,7 +122,7 @@ int mm_read_and_insert(const string& filename, sqlite3* db)
 			if (n % 100000 == 0)
 				cerr << "Inserted " << n << " sequences...\r";
 		}
-	  sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &sql_error_msg);
+	  sqlite3_exec(db, "COMMIT TRANSACTION", NULL, NULL, &sql_error_msg);
 		sqlite3_finalize(stmt);
 		auto endClock = clock() - startClock;
 		printf("Pip: %llu sequences imported in %4.2f seconds\n",n,endClock/(double)CLOCKS_PER_SEC);
@@ -262,6 +262,7 @@ int stream_db(string dbfile, string app)
 int main(int argc, char *argv[])
 {
 	// Read in command line options using boost:program_options
+	printf("SQLite was compiled with THREADSAFE = %d\n",sqlite3_threadsafe());
 	string dbfile;
 	po::options_description desc("Options");
 	desc.add_options()

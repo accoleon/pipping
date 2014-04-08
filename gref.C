@@ -16,7 +16,7 @@ using std::ostream;
 using std::ifstream;
 
 //#include <omp.h>
-
+#include <cstring>
 #include <string>
 using std::string;
 

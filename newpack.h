@@ -4,6 +4,8 @@
 // University of Oregon
 // 2014-02-28
 
+#include <vector>
+
 namespace pip {
 	namespace pack {
 		enum QualityFormat {
