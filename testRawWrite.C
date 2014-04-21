@@ -184,7 +184,7 @@ int main (int argc, char const *argv[])
 		mm_read_and_insert(argv[1],"out.test");
 		cout << "instream read and insert\n";
 		ins_read_and_insert(argv[1],"out.test");*/
-		cout << "mm write\n";
+		cout << "mm_struct write\n";
 		mm_struct("data/cfirst3.fastq");
 		return 0;
 	}
