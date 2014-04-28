@@ -133,6 +133,7 @@ void insert_sequences(string dbName, string fileName1, string fileName2, string 
 			i += 2;
 		}		
 	}
+	t.join();
 	// Inserts done
 	can_insert = false;
 	// Sanity Check, number of read sequences should equal # of inserts

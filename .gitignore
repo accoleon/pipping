@@ -13,3 +13,4 @@ out.test
 testRawWrite
 testfile
 insert_accelerator
+__pycache__
