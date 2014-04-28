@@ -10,6 +10,9 @@ all: pip
 
 pip: pip.o newpack.o commands.o stream_trimmomatic.o sqlite3.o
 	$(CXX) -o $@ $^ -L/usr/local/Cellar/boost/1.55.0_1/lib -L/usr/local/packages/boost/1.55.0/lib -lboost_program_options
+	
+insert_accelerator: insert_accelerator.o newpack.o commands.o sqlite3.o
+	$(CXX) -o $@ $^ -L/usr/local/Cellar/boost/1.55.0_1/lib -L/usr/local/packages/boost/1.55.0/lib
 
 gref:	gref.o FASTQSequence.o newpack.o sqlite3.o
 	$(CXX) -o $@ $^ -L/usr/local/packages/boost/1.55.0_1/lib -lboost_program_options
