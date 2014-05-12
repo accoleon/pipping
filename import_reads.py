@@ -13,6 +13,8 @@ import sqlite3
 import argparse
 import os.path
 
+from subprocess import call
+
 from FASTQ import *
 
 fetch_barcodes = 'SELECT barcode_id, experiment, sequence FROM barcodes'
@@ -65,21 +67,24 @@ def load_sequences(db, fn1, fn2, bc_id):
 	TBD: if the --accelerate option is specified on the command line use the C++ app
 	to fill the table.
 	"""
-	file1 = open(fn1)
-	file2 = open(fn2)
-	seq1 = FASTQ.read(file1)
-	seq2 = FASTQ.read(file2)
-	while seq1 is not None and seq2 is not None:
-		for seq in [seq1, seq2]:
-			defline = seq.defline()
-			if defline.find('N', defline.index(' ')) > 0:
-				seq.pack()
-				blob = seq.blob()
-			else:
-				blob = None
-			db.execute(insert_blob, (bc_id, blob))
+	if args.accelerate:
+		call(['insert_accelerator', args.dbname, bc_id, fn1, fn2])
+	else:
+		file1 = open(fn1)
+		file2 = open(fn2)
 		seq1 = FASTQ.read(file1)
 		seq2 = FASTQ.read(file2)
+		while seq1 is not None and seq2 is not None:
+			for seq in [seq1, seq2]:
+				defline = seq.defline()
+				if defline.find('N', defline.index(' ')) > 0:
+					seq.pack()
+					blob = seq.blob()
+				else:
+					blob = None
+				db.execute(insert_blob, (bc_id, blob))
+			seq1 = FASTQ.read(file1)
+			seq2 = FASTQ.read(file2)
 	
 file_pattern = 'L1_{exp}_{code1}-{code2}_L001_R{pair}_001.fastq'
 	
@@ -109,6 +114,7 @@ def init_api():
 	parser.add_argument('-a', '--all', action='store_true', help='import files for all experiments')
 	parser.add_argument('-n', '--noimport', action='store_true', help="verify files but don't import")
 	parser.add_argument('-f', '--force', action='store_true', help='re-initialize an existing database')
+	parser.add_argument('-A', '--accelerate', action='store_true', help='accelerate import using C++')
 	return parser.parse_args()
 	
 ###

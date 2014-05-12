@@ -143,7 +143,9 @@ void insert_sequences(string dbName, string fileName1, string fileName2, string 
 int main (int argc, char const *argv[])
 {
 	// Require dbname, and 2 file names: 3 in total
+	printf("arguments: %d", argc);
 	if (argc >= 4) {
+		printf("insert sequences\n");
 		insert_sequences(argv[1],argv[2],argv[3],argv[4]);
 	}
 	return 0;
