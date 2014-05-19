@@ -125,6 +125,9 @@ Pip: 2000000 sequences imported in 19.00 seconds
 Merged 2 files in 39.22 seconds
 
 4M paired-end:
+Pip: 4000000 sequences imported in 39.10 seconds
+Pip: 4000000 sequences imported in 38.82 seconds
+Merged 2 files in 78.67 seconds
 
 8M paired-end:
 Pip: 8000000 sequences imported in 81.01 seconds
@@ -140,6 +143,11 @@ Merged 2 files in 319.38 seconds
 Pip: 32000000 sequences imported in 321.50 seconds
 Pip: 32000000 sequences imported in 320.16 seconds
 Merged 2 files in 644.90 seconds
+
+64M paired-end:
+Pip: 64000000 sequences imported in 644.42 seconds
+Pip: 64000000 sequences imported in 637.76 seconds
+Merged 2 files in 1286.26 seconds
 
 6. Conclusion and future work
 -----------------------------

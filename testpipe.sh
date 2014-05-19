@@ -1,22 +1,7 @@
 #!/bin/bash
 
 rm fastq.db
-time ./pip -m "/Volumes/New Volume/datasets/1M.1.fastq" "/Volumes/New Volume/datasets/1M.2.fastq"
-
-rm fastq.db
-time ./pip -m "/Volumes/New Volume/datasets/2M.1.fastq" "/Volumes/New Volume/datasets/2M.2.fastq"
-
-rm fastq.db
-time ./pip -m "/Volumes/New Volume/datasets/8M.1.fastq" "/Volumes/New Volume/datasets/8M.2.fastq"
-
-rm fastq.db
-time ./pip -m "/Volumes/New Volume/datasets/16M.1.fastq" "/Volumes/New Volume/datasets/16M.2.fastq"
-
-rm fastq.db
-time ./pip -m "/Volumes/New Volume/datasets/32M.1.fastq" "/Volumes/New Volume/datasets/32M.2.fastq"
-
-rm fastq.db
-time ./pip -m "/Volumes/New Volume/datasets/64M.1.fastq" "/Volumes/New Volume/datasets/64M.2.fastq"
+time ./pip -m "/Volumes/New Volume/datasets/4M.1.fastq" "/Volumes/New Volume/datasets/4M.2.fastq"
 
 # SEQ1=data/anna_500K.1.fastq
 # SEQ2=data/anna_500K.2.fastq
