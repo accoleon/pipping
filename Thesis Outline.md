@@ -30,10 +30,19 @@ The FASTQ output produced by the Illumina sequencer is run through the preproces
 Talk about the db schema, rationale.
 The database is initialized with 4 tables:
 
+TODO - NEED TO CONSULT JC for clarification on db structure
 * primer - holds all the primers used in experiment
 * offset - randomized offsets to aid 16S sequencing
 * barcode - experiment identifier
 * log - holds logging data to aid accountability in experiments
+
+The log table supports the logging of metadata and a record of all operations done on the database.
+How to describe metadata logging? What sort of metadata are we planning to capture?
+
+General logging can be described in accountability terms - e.g. time of operation, tables operated on,
+number of rows operated, who (email? username?) operated. Purpose of this table
+is to automatically record operations so experiments can be reproduced with the
+appropriate settings/parameters easily.
 
 During the process of importing FASTQ data into the database, another table is produced:
 
@@ -134,5 +143,5 @@ Merged 2 files in 644.90 seconds
 
 6. Conclusion and future work
 -----------------------------
-Based on performance benchmarks and (user feedback?), tool is usable. More work 
+Based on performance benchmarks and (user feedback?), tool is usable? More work 
 required to make it work with other tools (bowtie, rest of pipeline). 
