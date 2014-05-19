@@ -1,7 +1,22 @@
 #!/bin/bash
 
 rm fastq.db
-./pip -mn data/anna_500K.1.fastq data/anna_500K.2.fastq
+time ./pip -m "/Volumes/New Volume/datasets/1M.1.fastq" "/Volumes/New Volume/datasets/1M.2.fastq"
+
+rm fastq.db
+time ./pip -m "/Volumes/New Volume/datasets/2M.1.fastq" "/Volumes/New Volume/datasets/2M.2.fastq"
+
+rm fastq.db
+time ./pip -m "/Volumes/New Volume/datasets/8M.1.fastq" "/Volumes/New Volume/datasets/8M.2.fastq"
+
+rm fastq.db
+time ./pip -m "/Volumes/New Volume/datasets/16M.1.fastq" "/Volumes/New Volume/datasets/16M.2.fastq"
+
+rm fastq.db
+time ./pip -m "/Volumes/New Volume/datasets/32M.1.fastq" "/Volumes/New Volume/datasets/32M.2.fastq"
+
+rm fastq.db
+time ./pip -m "/Volumes/New Volume/datasets/64M.1.fastq" "/Volumes/New Volume/datasets/64M.2.fastq"
 
 # SEQ1=data/anna_500K.1.fastq
 # SEQ2=data/anna_500K.2.fastq
@@ -27,8 +42,8 @@ MINLEN=MINLEN:140
 CROP=CROP:140
 
 #instruments -t "/Applications/Xcode.app/Contents/Applications/Instruments.app/Contents/Resources/templates/Time Profiler.tracetemplate" -D ProfileResults /Users/junjiexu/pipping/pip -s trimmo &
-./pip -s trimmo &
-java -jar $JAR_PATH PE -phred33 -trimlog $TRIM_LOG $TRIM_IN1 $TRIM_IN2 $TRIM_OUT_PAIRED1 $TRIM_OUT_UNPAIRED1 $TRIM_OUT_PAIRED2 $TRIM_OUT_UNPAIRED2 $CLIP $MAXINFO $MINLEN #$CROP
+#./pip -s trimmo &
+#java -jar $JAR_PATH PE -phred33 -trimlog $TRIM_LOG $TRIM_IN1 $TRIM_IN2 $TRIM_OUT_PAIRED1 $TRIM_OUT_UNPAIRED1 $TRIM_OUT_PAIRED2 $TRIM_OUT_UNPAIRED2 $CLIP $MAXINFO $MINLEN #$CROP
 OUTPREF=data/anna_500K
 TRIM_IN1=$OUTPREF.1.fastq
 TRIM_IN2=$OUTPREF.2.fastq

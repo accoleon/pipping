@@ -28,7 +28,17 @@ The FASTQ output produced by the Illumina sequencer is run through the preproces
 2. Database Management, Schema
 ------------------------------
 Talk about the db schema, rationale.
+The database is initialized with 4 tables:
 
+* primer - holds all the primers used in experiment
+* offset - randomized offsets to aid 16S sequencing
+* barcode - experiment identifier
+* log - holds logging data to aid accountability in experiments
+
+During the process of importing FASTQ data into the database, another table is produced:
+
+* reads1,reads2 - holds paired-end FASTQ data
+* reads - holds single-end FASTQ data
 
 
 3. Compression Scheme and Rationale
@@ -83,6 +93,44 @@ Original data in compressed form, tool wants data in certain format.
 5. Performance Benchmarks using various sample sizes
 ----------------------------------------------------
 Show insert speed, normalization speed, streaming speed (to trimmomatic)
+Insert speeds:
+
+500K Paired-end:
+Pip: 500000 sequences imported in 5.19 seconds
+Pip: 500000 sequences imported in 5.06 seconds
+Merged 2 files in 10.35 seconds <— actual inserts
+Pip: normalizing the database...
+Pip: normalization complete in 3.06718 seconds
+Pip: vacuuming the database to recover free space...
+Pip: vacuum complete in 3.07635 seconds
+Pip: Normalized database in 6.14 seconds <— time taken for database normalization and space vacuum (recovery)
+
+1M paired-end:
+ip: 1000000 sequences imported in 9.74 seconds
+Pip: 1000000 sequences imported in 9.51 seconds
+Merged 2 files in 19.57 seconds
+
+2M paired-end:
+Pip: 2000000 sequences imported in 19.78 seconds
+Pip: 2000000 sequences imported in 19.00 seconds
+Merged 2 files in 39.22 seconds
+
+4M paired-end:
+
+8M paired-end:
+Pip: 8000000 sequences imported in 81.01 seconds
+Pip: 8000000 sequences imported in 78.75 seconds
+Merged 2 files in 160.84 seconds
+
+16M paired-end:
+Pip: 16000000 sequences imported in 159.81 seconds
+Pip: 16000000 sequences imported in 157.41 seconds
+Merged 2 files in 319.38 seconds
+
+32M paired-end:
+Pip: 32000000 sequences imported in 321.50 seconds
+Pip: 32000000 sequences imported in 320.16 seconds
+Merged 2 files in 644.90 seconds
 
 6. Conclusion and future work
 -----------------------------
