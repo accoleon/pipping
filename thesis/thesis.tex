@@ -52,11 +52,13 @@
 	\subsection{Database Structure} % (fold)
 	\label{sub:database_structure}
 	The database is initialized with 4 tables:
-
-	* primer - holds all the primers used in experiment
-	* offset - randomized offsets to aid 16S sequencing
-	* barcode - experiment identifier
-	* log - holds logging data to aid accountability in experiments
+	
+	\begin{description}
+		\item[primer] holds all the primers used in experiment
+		\item[offset] randomized offsets to aid 16S sequencing
+		\item[barcode] experiment identifier
+		\item[log] stores metadata related to the experiment 
+	\end{description}
 	
 	The log table supports the logging of metadata and a record of all operations done on the database.
 	How to describe metadata logging? What sort of metadata are we planning to capture?
@@ -111,7 +113,7 @@
 	and transferring of sequences between the various tools. There is often a need
 	to modify the structure or format of the data to fit the varying input requirements
 	of those tools. Table~\ref{tab:expected_input} shows the various input formats that
-	tools in the pipeline expect.
+	tools in the pipeline require.
 
 	\begin{table}
 		\centering
@@ -137,9 +139,15 @@
 	(General list of files? Number of files?)
 	
 	Using a plug-in architecture, Pip can ``stream'' sequence data to tools in the
-	pipeline without creating intermediate files on disk. Pip uses UNIX Named Pipes to 
-	feed data to Trimmomatic and Bowtie while simultaneously consuming the output
-	they produce back into the database.
+	pipeline without writing to files on disk. Pip uses UNIX Named Pipes to 
+	feed data to tools such as Trimmomatic and Bowtie while simultaneously consuming the output
+	they produce back into the database. UNIX Named Pipes allows programs to transfer
+	data through memory instead of disk, and therefore do not require reading and
+	writing to disk. However, named pipes appear as size zero, normal files on a filesystem,
+	thus tools can read and write from those files normally, without needing any changes
+	to the software.
+	
+	(flowchart of streaming process?)
 	
 	
 	* Streaming Data with Named Pipes
@@ -160,8 +168,8 @@
 	% subsection data_flow_using_unix_pipes (end)
 	% section data_management (end)
 
-\section{Benchmarks} % (fold)
-\label{sec:benchmarks}
+\section{Results} % (fold)
+\label{sec:results}
 Pip was benchmarked on a 2.7 GHz Intel Core i7 processor with 16GB of RAM, running
 OS X 10.9. Table~\ref{tab:insertion_speeds} shows the time taken for the specified number
 of sequence inserts into a new Pip database. Figure~\ref{fig:insertion_speeds} plots the time 
@@ -226,13 +234,21 @@ database file after inserts. Figure~\ref{fig:filesizes} reveals a consistent
 	\caption{Chart of file sizes}
 	\label{fig:filesizes}
 \end{figure}
+% section results (end)
 
+\section{Analysis and Applications} % (fold)
+\label{sec:analysis_and_applications}
 
-% section benchmarks (end)
-\newpage
+% section analysis_and_applications (end)
+
 \section{Conclusion} % (fold)
 \label{sec:conclusion}
 The use of Pip within the 16S pipeline shows promise in reducing the logistical
-effort of researcher and interoperability headaches of multiple tools.
+effort of researcher and interoperability headaches of multiple tools. Currently,
+Pip operates on the first two tools of the 16S pipeline (Trimmomatic, Bowtie) and
+shows promise. Pip can be extended to with tools later in the pipeline easily through
+a plug-in architecture. There appears to be no performance penalty in streaming
+data compared to disk access, and the underlying SQLite implementation is able to
+deal with datasets of up to 91 million rows without slowdowns.
 % section conclusion (end)
 \end{document}

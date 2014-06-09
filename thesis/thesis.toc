@@ -3,5 +3,6 @@
 \contentsline {subsection}{\numberline {2.1}Database Structure}{4}
 \contentsline {subsection}{\numberline {2.2}Data Compression}{5}
 \contentsline {subsection}{\numberline {2.3}Data Transformation}{6}
-\contentsline {section}{\numberline {3}Benchmarks}{7}
-\contentsline {section}{\numberline {4}Conclusion}{8}
+\contentsline {section}{\numberline {3}Results}{7}
+\contentsline {section}{\numberline {4}Analysis and Applications}{10}
+\contentsline {section}{\numberline {5}Conclusion}{10}
