@@ -39,16 +39,23 @@
 	% section introduction (end)
 	\section{Data Management} % (fold)
 	\label{sec:data_management}
-	This 
-	Talk about the db schema, rationale.
+	Data in the pipeline is conceptually divided into three tasks:
+	
+	\begin{enumerate}
+		\item Storing sequence data in a compressed form
+		\item Transforming stored data into a format required by tools in the pipeline
+		\item Logging metadata
+	\end{enumerate}
+
+	\subsection{Database Structure} % (fold)
+	\label{sub:database_structure}
 	The database is initialized with 4 tables:
 
-	TODO - NEED TO CONSULT JC for clarification on db structure
 	* primer - holds all the primers used in experiment
 	* offset - randomized offsets to aid 16S sequencing
 	* barcode - experiment identifier
 	* log - holds logging data to aid accountability in experiments
-
+	
 	The log table supports the logging of metadata and a record of all operations done on the database.
 	How to describe metadata logging? What sort of metadata are we planning to capture?
 
@@ -61,9 +68,10 @@
 
 	* reads1,reads2 - holds paired-end FASTQ data
 	* reads - holds single-end FASTQ data
-	
-	\subsection{Compression} % (fold)
-	\label{sub:compression}
+	% subsection database_structure (end)
+
+	\subsection{Data Compression} % (fold)
+	\label{sub:data_compression}
 	Short description of the compression scheme (combining sequence and quality lines)
 	and file size savings
 
@@ -94,56 +102,67 @@
 	* Fast compression/decompression
 	* Lossless
 	% subsection compression (end)
+	
+	\subsection{Data Transformation} % (fold)
+	\label{sec:data_transformation}
+	A central part of managing the sequence data in the 16S pipeline is the manipulation
+	and transferring of sequences between the various tools. There is often a need
+	to modify the structure or format of the data to fit the varying input requirements
+	of those tools. Table~\ref{tab:expected_input} shows the various input formats that
+	tools in the pipeline expect.
+
+	\begin{table}
+		\begin{tabular}{cc}
+		\hline
+		Tool & Expected input format\\
+		\hline
+		Trimmomatic & FASTQ/Gzipped FASTQ\\
+		\hline
+		Bowtie2 & FASTQ/FASTA\\
+		\hline
+		QIIME & 454-FASTA/454-Quality Scores\\
+		\hline
+		\end{tabular}
+		\caption{Expected input formats for various tools}
+		\label{tab:expected_input}
+	\end{table}
+
+	Traditionally, the way to manage the various formats was to transform and store
+	various copies of the data in multiple files. For example, running a sequence through
+	just the first three tools in the pipeline will produce the following files:
+
+	(General list of files? Number of files?)
+
+
+	* Streaming Data with Named Pipes
+		* Tool-specific adapters
+	* Demultiplexer, Trimmomatic, Bowtie
+	* No intermediate files Virtual files on filesystem
+
+	1. Request data
+	2. Transforms data into streams of FASTQ data
+	3. Feed data into tool using pipes
+	4. Receive feedback from tool
+	5. Transform feedback into deltas
+	6. Store data into SQLite
+
+	* No intermediate files
+	* No disk I/O
+
+	% subsection data_flow_using_unix_pipes (end)
 	% section data_management (end)
-\section{Data Flow using UNIX Pipes} % (fold)
-\label{sec:data_flow_using_unix_pipes}
-A central part of managing the sequence data in the 16S pipeline is the manipulation
-and transferring of sequences between the various tools. There is often a need
-to modify the structure or format of the data to fit the varying input requirements
-of those tools. Table~\ref{tab:expected_input} shows the various input formats that
-tools in the pipeline expect.
 
-\begin{table}
-	\begin{tabular}{cc}
-	\hline
-	Tool & Expected input format\\
-	\hline
-	Trimmomatic & FASTQ/Gzipped FASTQ\\
-	\hline
-	Bowtie2 & FASTQ/FASTA\\
-	\hline
-	QIIME & 454-FASTA/454-Quality Scores\\
-	\hline
-	\end{tabular}
-	\caption{Expected input formats for various tools}
-	\label{tab:expected_input}
-\end{table}
-
-Traditionally, the way to manage the various formats was to transform and store
-various copies of the data in multiple files. For example, running a sequence through
-just the first three tools in the pipeline will produce the following files:
-
-
-
-* Streaming Data with Named Pipes
-	* Tool-specific adapters
-* Demultiplexer, Trimmomatic, Bowtie
-* No intermediate files Virtual files on filesystem
-
-1. Request data
-2. Transforms data into streams of FASTQ data
-3. Feed data into tool using pipes
-4. Receive feedback from tool
-5. Transform feedback into deltas
-6. Store data into SQLite
-
-* No intermediate files
-* No disk I/O
-
-% section data_flow_using_unix_pipes (end)
 \section{Benchmarks} % (fold)
 \label{sec:benchmarks}
-Show insert speed, normalization speed, streaming speed (to trimmomatic)
+Pip was benchmarked on a 2.7 GHz Intel Core i7 processor with 16GB of RAM, running
+OS X 10.9. Table~\ref{tab:insertion_speeds} shows the time taken for the specified number
+of sequence inserts into a new Pip database. Figure~\ref{fig:insertion_speeds} plots the time 
+to insert and shows a linear trend in the time taken to insert with respect to number
+of sequences inserted.
+
+Table x shows the size of the raw FASTQ sequence file compared to the resulting
+database file after inserts.
+
 \begin{table}[h]
 \centering
 \begin{tabular}{n{4}{2}n{4}{2}}
@@ -160,15 +179,15 @@ Show insert speed, normalization speed, streaming speed (to trimmomatic)
  \np{64000000} & 1286.26 \\
  \bottomrule
 \end{tabular}
-\caption{Insertion speeds}
+\caption{Insertion speeds into SQLite using Pip}
 \label{tab:insertion_speeds}
 \end{table}
 
 \begin{figure}[h!]
-	
 	\centering
 	\includegraphics[width=\textwidth]{insertion_speed_chart}
 	\caption{Chart of insertion speeds}
+	\label{fig:insertion_speeds}
 \end{figure}
 
 
