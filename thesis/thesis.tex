@@ -160,8 +160,9 @@ of sequence inserts into a new Pip database. Figure~\ref{fig:insertion_speeds} p
 to insert and shows a linear trend in the time taken to insert with respect to number
 of sequences inserted.
 
-Table x shows the size of the raw FASTQ sequence file compared to the resulting
-database file after inserts.
+Table~\ref{tab:filesizes} shows the size of the raw FASTQ sequence file compared to the resulting
+database file after inserts. Figure~\ref{fig:filesizes} reveals a consistent
+reduction in file size after insertion.
 
 \begin{table}[h]
 \centering
@@ -183,14 +184,14 @@ database file after inserts.
 \label{tab:insertion_speeds}
 \end{table}
 
-\begin{figure}[h!]
+\begin{figure}[h]
 	\centering
 	\includegraphics[width=\textwidth]{insertion_speed_chart}
 	\caption{Chart of insertion speeds}
 	\label{fig:insertion_speeds}
 \end{figure}
 
-\begin{table}[h!]
+\begin{table}[h]
 \centering
 \begin{tabular}{n{4}{2}n{4}{2}n{4}{2}}
 	\toprule
@@ -198,11 +199,11 @@ database file after inserts.
  \midrule
  \np{500000} & 371.4 & 206.9 \\
  \np{1000000} & 743.00 & 413.9 \\
- \np{2000000} & 1486 & 828 \\
+ \np{2000000} & 1486.00 & 828.00 \\
  \np{4000000} & 3051.52 & 1699.84 \\
  \np{8000000} & 6082.56 & 3389.44 \\
  \np{16000000} & 12165.12 & 6789.12 \\
- \np{32000000} & 24350.72 & \\
+ \np{32000000} & 24350.72 & 13568.0 \\
  \np{64000000} & 48701.44 & \\
  \np{91000000} & 69754.88 & 35061.76 \\
  \bottomrule
@@ -211,17 +212,19 @@ database file after inserts.
 \label{tab:filesizes}
 \end{table}
 
-\begin{figure}[h!]
+\begin{figure}[h]
 	\centering
-	\includegraphics[width=\textwidth]{filesize_chart}
+	\includegraphics[width=\textwidth]{filesizes_chart}
 	\caption{Chart of file sizes}
 	\label{fig:filesizes}
 \end{figure}
 
 
 % section benchmarks (end)
+\newpage
 \section{Conclusion} % (fold)
 \label{sec:conclusion}
-
+The use of Pip within the 16S pipeline shows promise in reducing the logistical
+effort of researcher and interoperability headaches of multiple tools.
 % section conclusion (end)
 \end{document}
