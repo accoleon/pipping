@@ -2,6 +2,7 @@
 \documentclass[12pt]{article}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{tabularx}
 \usepackage{setspace}
 \doublespacing
 \usepackage[np]{numprint}
@@ -39,9 +40,10 @@
 	% section introduction (end)
 	\section{Data Management} % (fold)
 	\label{sec:data_management}
-	Data in the pipeline is conceptually divided into three tasks:
+	Data in the pipeline is conceptually divided into four tasks:
 	
 	\begin{enumerate}
+		\item Create semantic structure within the database
 		\item Storing sequence data in a compressed form
 		\item Transforming stored data into a format required by tools in the pipeline
 		\item Logging metadata
@@ -112,7 +114,8 @@
 	tools in the pipeline expect.
 
 	\begin{table}
-		\begin{tabular}{cc}
+		\centering
+		\begin{tabular}{c|c}
 		\hline
 		Tool & Expected input format\\
 		\hline
@@ -132,8 +135,13 @@
 	just the first three tools in the pipeline will produce the following files:
 
 	(General list of files? Number of files?)
-
-
+	
+	Using a plug-in architecture, Pip can ``stream'' sequence data to tools in the
+	pipeline without creating intermediate files on disk. Pip uses UNIX Named Pipes to 
+	feed data to Trimmomatic and Bowtie while simultaneously consuming the output
+	they produce back into the database.
+	
+	
 	* Streaming Data with Named Pipes
 		* Tool-specific adapters
 	* Demultiplexer, Trimmomatic, Bowtie
@@ -162,11 +170,11 @@ of sequences inserted.
 
 Table~\ref{tab:filesizes} shows the size of the raw FASTQ sequence file compared to the resulting
 database file after inserts. Figure~\ref{fig:filesizes} reveals a consistent
-reduction in file size after insertion.
+45\% reduction in file size after insertions.
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
-\begin{tabular}{n{4}{2}n{4}{2}}
+\begin{tabular}{n{4}{2}|n{4}{2}}
 	\toprule
  {Number of sequences (paired-end)} & {Time taken (seconds)} \\
  \midrule
@@ -184,27 +192,27 @@ reduction in file size after insertion.
 \label{tab:insertion_speeds}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 	\centering
 	\includegraphics[width=\textwidth]{insertion_speed_chart}
 	\caption{Chart of insertion speeds}
 	\label{fig:insertion_speeds}
 \end{figure}
 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
-\begin{tabular}{n{4}{2}n{4}{2}n{4}{2}}
+\begin{tabular}{n{0}{0}|n{6}{2}|n{6}{2}}
 	\toprule
  {Number of sequences (paired-end)} & {Input FASTQ size (MB)} & {Pip database (MB)} \\
  \midrule
- \np{500000} & 371.4 & 206.9 \\
- \np{1000000} & 743.00 & 413.9 \\
+ \np{500000} & 371.40 & 206.90 \\
+ \np{1000000} & 743.00 & 413.90 \\
  \np{2000000} & 1486.00 & 828.00 \\
  \np{4000000} & 3051.52 & 1699.84 \\
  \np{8000000} & 6082.56 & 3389.44 \\
  \np{16000000} & 12165.12 & 6789.12 \\
- \np{32000000} & 24350.72 & 13568.0 \\
- \np{64000000} & 48701.44 & \\
+ \np{32000000} & 24350.72 & 13568.00 \\
+ \np{64000000} & 48701.44 & 27146.20 \\
  \np{91000000} & 69754.88 & 35061.76 \\
  \bottomrule
 \end{tabular}
@@ -212,7 +220,7 @@ reduction in file size after insertion.
 \label{tab:filesizes}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 	\centering
 	\includegraphics[width=\textwidth]{filesizes_chart}
 	\caption{Chart of file sizes}
