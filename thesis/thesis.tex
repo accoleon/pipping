@@ -190,6 +190,34 @@ database file after inserts.
 	\label{fig:insertion_speeds}
 \end{figure}
 
+\begin{table}[h!]
+\centering
+\begin{tabular}{n{4}{2}n{4}{2}n{4}{2}}
+	\toprule
+ {Number of sequences (paired-end)} & {Input FASTQ size (MB)} & {Pip database (MB)} \\
+ \midrule
+ \np{500000} & 371.4 & 206.9 \\
+ \np{1000000} & 743.00 & 413.9 \\
+ \np{2000000} & 1486 & 828 \\
+ \np{4000000} & 3051.52 & 1699.84 \\
+ \np{8000000} & 6082.56 & 3389.44 \\
+ \np{16000000} & 12165.12 & 6789.12 \\
+ \np{32000000} & 24350.72 & \\
+ \np{64000000} & 48701.44 & \\
+ \np{91000000} & 69754.88 & 35061.76 \\
+ \bottomrule
+\end{tabular}
+\caption{Comparison of input file sizes against Pip database sizes}
+\label{tab:filesizes}
+\end{table}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\textwidth]{filesize_chart}
+	\caption{Chart of file sizes}
+	\label{fig:filesizes}
+\end{figure}
+
 
 % section benchmarks (end)
 \section{Conclusion} % (fold)
