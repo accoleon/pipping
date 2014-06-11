@@ -1,4 +1,3 @@
-
 \documentclass[12pt]{article}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -7,14 +6,15 @@
 \doublespacing
 \usepackage[np]{numprint}
 \npstyleenglish
-
+\usepackage{hyperref}
 \begin{document}
+
 	\title{16S RNA Sequencing Data Management using SQLite}
 	\author{Xu Junjie, Kevin}
 	\date{June 2014}
 	\maketitle
 	\begin{abstract}
-		The 16S Ribosomal RNA Sequencing is used extensively in analzying bacterial
+		16S Ribosomal RNA Sequencing is used extensively in analzying bacterial
 		phylogeny and taxonomy. This project attempts to streamline the 16S sequencing
 		pipeline using local file databases to replace multiple flat sequence files used
 		in the pipeline, to ease logistical burdens on the researcher and enable 
@@ -23,15 +23,16 @@
 	\tableofcontents
 	\section{Introduction} % (fold)
 	\label{sec:introduction}
-	The project utilized computational methods such as 16S Ribosomal Profiling as a proxy for species identity. The 16S small subunit of bacterial ribosomes are highly conserved, which means that the differences within the 16S RNA profiles can be used as an analogue for species identity. Since the 16S gene contains both highly conserved and highly variable regions all interspersed together,
-	The highly conserved regions can be amplified using PCR (Polymerase chain reaction), while the variable regions are used to classify the organism. HTS (High Throughput Sequencing) using Illumina sequencers are then used to sequence the PCR products from the prior step.
+	The 16S small subunit of bacterial ribosomes are highly gene sequences found in all bacteria, which means that the differences within the 16S RNA profiles can be used as an analogue for species identity. Since the 16S gene contains both highly conserved and highly variable regions all interspersed together,
+	the highly conserved regions can be amplified using PCR (Polymerase chain reaction), while the variable regions are used to classify the organism. HTS (High Throughput Sequencing) using Illumina sequencers are then used to sequence the PCR products from the prior step.
 
-	The output from HTS forms the start of the computational pipeline. In the preprocessing stage, poor quality reads are filtered and trimmed. Chimeras and non-bacterial 16S reads are then removed. The pipeline then attempts to produce phylogenetic classification through the use of RDP classifiers and sequence similarity (i.e. OTU Analysis). By comparing the filtered output from HTS against the already existing taxonomies of over 2 million species, the genus, family, and order of the sample can be determined.
+	The output from HTS forms the start of the computational pipeline. In the preprocessing stage, poor quality reads are filtered and trimmed. 
+	Chimeras\footnote{a single organism composed of genetically distinct cells} and non-bacterial 16S reads are then removed. 
+	The pipeline then attempts to produce phylogenetic classification through the use of classification based on sequence similarity (i.e. OTU Analysis). By comparing the filtered output from HTS against the already existing taxonomies of over 2 million species, the genus, family, and order of the sample can be determined.
 
-	The RDP classifier can fail for various reasons: the majority of bacterial species have not been identified or sequenced, the 16S reads are usually too short for accurate classification. In those cases, groups of highly similar sequences are grouped into OTUs (Operational Taxonomic Unit) that can be analyzed for
-	quantitative differences in communities between the sequenced samples.
+	%The classifier can fail for various reasons: for example, the majority of bacterial species have not been identified or sequenced, the 16S reads are usually too short for accurate classification. In those cases, groups of highly similar sequences are grouped into OTUs (Operational Taxonomic Unit) that can be analyzed for quantitative differences in communities between the sequenced samples.
 
-	The project utilizes a computational approach due to the large amount of raw sequencing data that is created from the PCR amplification process. The variability of results is further affected by the OTU Analysis stage, where prior parameters can affect the analysis outcome. Using a computational approach would allow the change of various parameters, in order to quantitate the effects of those parameter changes.
+	%The project utilizes a computational approach due to the large amount of raw sequencing data that is created from the PCR amplification process. The variability of results is further affected by the OTU Analysis stage, where prior parameters can affect the analysis outcome. Using a computational approach would allow the change of various parameters, in order to quantitate the effects of those parameter changes.
 
 	The majority of the pipeline is executed on the University of Oregon’s ACISS High-Performance Supercomputer Cluster, and utilizes PBS scripts (normal shell scripts with extra variables defined to manage job resources) to execute the different stages of the pipeline.
 
@@ -156,9 +157,9 @@
 \label{sec:results}
 Pip was benchmarked on a 2.7 GHz Intel Core i7 processor with 16GB of RAM, running
 OS X 10.9. Table~\ref{tab:insertion_speeds} shows the time taken for the specified number
-of sequence inserts into a new Pip database. Figure~\ref{fig:insertion_speeds} plots the time 
-to insert and shows a linear trend in the time taken to insert with respect to number
-of sequences inserted.
+of sequence inserts into a new Pip database. Figure~\ref{fig:insertion_speeds} plots the
+number of actual raw inserts per second into SQLite, showing consistent insertion 
+rates between \np{96000} and \np{102000} raw inserts per second.
 
 \begin{table}[h!]
 \centering
@@ -183,7 +184,7 @@ of sequences inserted.
 \begin{figure}[h!]
 	\centering
 	\includegraphics[width=\textwidth]{insertion_speed_chart}
-	\caption{Chart of insertion speeds}
+	\caption{Inserts per second into SQLite using Pip}
 	\label{fig:insertion_speeds}
 \end{figure}
 \newpage
@@ -235,4 +236,5 @@ a plug-in architecture. There appears to be no performance penalty in streaming
 data compared to disk access, and the underlying SQLite implementation is able to
 deal with datasets of up to 91 million rows without slowdowns.
 % section conclusion (end)
+
 \end{document}
