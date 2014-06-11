@@ -1,9 +1,10 @@
 \documentclass[12pt]{article}
-\usepackage{graphicx,multirow,booktabs,setspace,listings}
+\RequirePackage{nag}
+\usepackage{graphicx,multirow,booktabs,setspace,listings,microtype}
 \doublespacing
 \usepackage[np]{numprint}
 \npstyleenglish
-\usepackage{hyperref}
+\usepackage{hyperref,cleveref}
 \begin{document}
 
 	\title{16S RNA Sequencing Data Management using SQLite}
@@ -33,22 +34,28 @@
 
 	The majority of the pipeline is executed on the University of Oregon’s ACISS High-Performance Supercomputer Cluster, and utilizes PBS scripts (normal shell scripts with extra variables defined to manage job resources) to execute the different stages of the pipeline.
 
-	(flowchart placeholder)
-
 	The FASTQ output produced by the Illumina sequencer is run through the preprocessing stage of filtering, trimming, and demultiplexing. The PBS script for the preprocessing stage calls on the Demultiplexer, a python script written by Rodger Voelker, which removes the primer attached to the sequences during the amplification process, and attaches barcodes (signifying sample origin) to both ends of the paired-end reads in the FASTQ file. After demultiplexing, the pipeline proceeds to use Trimmomatic v0.32, an open source tool to trim poor quality feeds from the reads. It uses a sliding window trimming, that cuts out sequences when the average quality within a window falls below a certain threshold. 
 	Bowtie 2.1.0 is used to align the reads to existing mitochondrial and phiX sequences and to remove them.
+	
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=\textwidth]{Pipeline}
+		\caption{16S pipeline stages explored with Pip}
+		\label{fig:pipeline}
+	\end{figure}
 	
 	Pip (Pipeline Interface Program) was developed to explore the feasibility of 
 	storing 16S Ribosomal RNA Sequencing pipeline work products in a SQLite database.
 	The project began on the preprocessing (primer splitting, trimming, quality filtering) 
 	stages of the pipeline, preparing the work products from the raw sequencing 
 	data produced by the Illumina NGS machines to be fed into the analysis (clustering, alignment, phylogenic inference) 
-	stages.
+	stages. \Cref{fig:pipeline} illustrates the stages of a 16S sequencing pipeline that Pip currently 
+	interfaces with.
 	
 	Every stage within a pipeline consumes a set of input files and produces a set 
 	of output files, so a single run of an experiment through the pipeline will produce
 	a large number of work products, which must be managed manually by the user of 
-	the pipeline. Table~\ref{tab:stages_files} shows the number of files that will
+	the pipeline. \Cref{tab:stages_files} shows the number of files that will
 	accumulate through running through the stages in a pipeline, which must be managed
 	by the user.
 	
@@ -105,14 +112,16 @@
 		\item[read2] stores the second part of paired-end sequence data
 	\end{description}
 	
-	The primer, offset, and barcode tables links information about the experiment 
-	to the actual sequences to be stored in the read1 and read2 tables.
-	
-	Every operation done in Pip can be stored as metadata in the log table, providing a
-	detailed record of all settings and parameters used at the time of operation. 
-	Results of OTU Analysis can be affected by parameters used by the tools upstream
-	in a pipeline, thus having a reliable record of operations and transformations
-	to the data will aid in analysis downstream.
+	The \emph{primer}, \emph{offset}, and \emph{barcode} tables links information 
+	about the experiment to the actual sequences to be stored in the \emph{read1} 
+	and \emph{read2} tables. The \emph{log} table stores metadata about every 
+	operation done in Pip. For example, running Trimmomatic with Pip \emph{trimmed1} and \emph{trimmed2} 
+	tables which stores the results from the trimming and filtering operations performed 
+	by Trimmomatic. The settings used in the operation, along with the time and sequences affected
+	are stored in the \emph{log} table. Since the results of OTU Analysis can be 
+	affected by parameters used by the stages upstream in a pipeline, having a 
+	reliable record of operations and transformations to the data will aid in 
+	analysis stages downstream.
 
 	% subsection database_structure (end)
 
@@ -152,7 +161,7 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 	A central part of managing the sequence data in the 16S pipeline is the manipulation
 	and transferring of sequences between the various tools. There is often a need
 	to modify the structure or format of the data to fit the varying input requirements
-	of those tools. Table~\ref{tab:expected_input} shows the various input formats that
+	of those tools. \Cref{tab:expected_input} shows the various input formats that
 	tools in the pipeline require.
 
 	\begin{table}
@@ -171,7 +180,7 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 		\caption{Expected input formats for various tools}
 		\label{tab:expected_input}
 	\end{table}
-
+ % NEED TO REPHRASE OUT VARIOUS
 	Traditionally, the way to manage the various formats was to transform and store
 	various copies of the data in multiple files. For example, the first stage of 
 	the pipeline usually involves using Trimmomatic to filter poor quality reads 
@@ -185,9 +194,9 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 	number of stages within the 16S pipeline.
 	
 	Using a plug-in architecture, Pip can ``stream'' sequence data to tools in the
-	pipeline without writing to disk. Pip uses UNIX Named Pipes to 
-	feed data to tools such as Trimmomatic and Bowtie while simultaneously consuming the output
-	they produce back into the database. UNIX Named Pipes allows programs to transfer
+	pipeline without writing to disk. Pip uses UNIX Named Pipes to feed data to 
+	external programs such as Trimmomatic and Bowtie2 while simultaneously consuming 
+	the output they produce back into the database. UNIX Named Pipes allows programs to transfer
 	data through memory instead of disk, and therefore do not require reading and
 	writing to disk. However, named pipes appear as size zero, regular files on a filesystem,
 	thus tools can read and write from those files without needing any changes
@@ -205,8 +214,8 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 \section{Results} % (fold)
 \label{sec:results}
 Pip was benchmarked on a 2.7 GHz Intel Core i7 processor with 16GB of RAM, running
-OS X 10.9. Table~\ref{tab:insertion_speeds} shows the time taken for the specified number
-of sequence inserts into a new Pip database. Figure~\ref{fig:insertion_speeds} plots the
+OS X 10.9. \Cref{tab:insertion_speeds} shows the time taken for the specified number
+of sequence inserts into a new Pip database. \Cref{fig:insertion_speeds} plots the
 number of actual raw inserts per second into SQLite, showing consistent insertion 
 rates between \np{96000} and \np{102000} raw inserts per second.
 
@@ -237,8 +246,8 @@ rates between \np{96000} and \np{102000} raw inserts per second.
 	\label{fig:insertion_speeds}
 \end{figure}
 \newpage
-Table~\ref{tab:filesizes} shows the size of the raw FASTQ sequence file compared to the resulting
-database file after inserts. Figure~\ref{fig:filesizes} reveals a consistent
+\Cref{tab:filesizes} shows the size of the raw FASTQ sequence file compared to the resulting
+database file after inserts. \Cref{fig:filesizes} reveals a consistent
 45\% reduction in file size after insertions.
 
 \begin{table}[h!]
@@ -269,7 +278,7 @@ database file after inserts. Figure~\ref{fig:filesizes} reveals a consistent
 	\label{fig:filesizes}
 \end{figure}
 
-Table~\ref{tab:streamspeed} shows runtime reductions in a stage in the test pipeline, 
+\Cref{tab:streamspeed} shows runtime reductions in a stage in the test pipeline, 
 as a result of streaming data directly from Pip to Trimmomatic, instead of accessing
 the disk.
 
