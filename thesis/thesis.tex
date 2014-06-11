@@ -1,5 +1,5 @@
 \documentclass[12pt]{article}
-\usepackage{graphicx,booktabs,setspace,listings}
+\usepackage{graphicx,multirow,booktabs,setspace,listings}
 \doublespacing
 \usepackage[np]{numprint}
 \npstyleenglish
@@ -43,7 +43,36 @@
 	The project began on the preprocessing (primer splitting, trimming, quality filtering) 
 	stages of the pipeline, preparing the work products from the raw sequencing 
 	data produced by the Illumina NGS machines to be fed into the analysis (clustering, alignment, phylogenic inference) 
-	stages. 
+	stages.
+	
+	Every stage within a pipeline consumes a set of input files and produces a set 
+	of output files, so a single run of an experiment through the pipeline will produce
+	a large number of work products, which must be managed manually by the user of 
+	the pipeline. Table~\ref{tab:stages_files} shows the number of files that will
+	accumulate through running through the stages in a pipeline, which must be managed
+	by the user.
+	
+	\begin{table}[h!]
+		\centering
+		\begin{tabular}{ccc}
+		\toprule
+		Stage & {\# of Input Files} & {\# of Output Files}\\
+		\midrule
+		Trimmomatic & 2 & 5 \\
+		Bowtie2 & 3 & 7\\
+		QIIME (Assign multiplex reads) & 3 & 3\\
+		\bottomrule
+		\end{tabular}
+		\caption{Number of files involved in 16S pipeline stages}
+		\label{tab:stages_files}
+	\end{table}
+	
+	Pip eliminates the accumulation of intermediate work products in a pipeline by
+	containing the data within a single file (Pip database). It reduces the amount 
+	of disk space usage through compression and storage of logical differences between
+	the input and output of stages. By transferring only the required data to the 
+	stages in the pipeline, Pip reduces disk access and provides minor speedups to 
+	runtimes.
 	
 	% section introduction (end)
 	\section{Data Management} % (fold)
@@ -239,6 +268,10 @@ database file after inserts. Figure~\ref{fig:filesizes} reveals a consistent
 	\caption{File sizes of Pip database against original FASTQ files}
 	\label{fig:filesizes}
 \end{figure}
+
+Table~\ref{tab:streamspeed} shows runtime reductions in a stage in the test pipeline, 
+as a result of streaming data directly from Pip to Trimmomatic, instead of accessing
+the disk.
 
 \begin{table}[h!]
 \centering
