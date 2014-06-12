@@ -1,5 +1,7 @@
 \documentclass[12pt]{article}
 \RequirePackage{nag}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
 \usepackage{graphicx,multirow,booktabs,setspace,listings,microtype}
 \doublespacing
 \usepackage[np]{numprint}
@@ -44,7 +46,7 @@
 		\label{fig:pipeline}
 	\end{figure}
 	
-	Pip (Pipeline Interface Program) was developed to explore the feasibility of 
+	Pip (\emph{P}ipeline \emph{I}nterface \emph{P}rogram) was developed to explore the feasibility of 
 	storing 16S Ribosomal RNA Sequencing pipeline work products in a SQLite database.
 	The project began on the preprocessing (primer splitting, trimming, quality filtering) 
 	stages of the pipeline, preparing the work products from the raw sequencing 
@@ -156,7 +158,7 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 
 	% subsection compression (end)
 	
-	\subsection{Data Transformation} % (fold)
+	\subsection{Data Transformation \& Flow} % (fold)
 	\label{sec:data_transformation}
 	A central part of managing the sequence data in the 16S pipeline is the manipulation
 	and transferring of sequences between the various tools. There is often a need
@@ -181,8 +183,8 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 		\label{tab:expected_input}
 	\end{table}
  % NEED TO REPHRASE OUT VARIOUS
-	Traditionally, the way to manage the various formats was to transform and store
-	various copies of the data in multiple files. For example, the first stage of 
+	Traditionally, the way to manage data in the pipeline was to store distinct sets of input 
+	and output files for every stage. For example, the first stage of 
 	the pipeline usually involves using Trimmomatic to filter poor quality reads 
 	and to trim all the reads to a certain length. Doing this requires the user to
 	provide 2 paired-end FASTQ sequence files to Trimmomatic, which will then produce
@@ -191,7 +193,10 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 	nearly doubling after the first stage in the pipeline. Subsequent stages will
 	then take the output of the first stage and create more output. Thus, both
 	the number of files and their file size will increase very quickly due to the 
-	number of stages within the 16S pipeline.
+	number of stages within the 16S pipeline. Additionally, certain stages in a pipeline only exist to convert sequences from 
+	one format to another (i.e.\ the need to convert Illumina FASTQ to 454-FASTA and 
+	454-Quality formats required by QIIME), increasing the length of the pipeline 
+	and the number of intermediate work products.
 	
 	Using a plug-in architecture, Pip can ``stream'' sequence data to tools in the
 	pipeline without writing to disk. Pip uses UNIX Named Pipes to feed data to 
@@ -300,19 +305,64 @@ the disk.
 
 % section results (end)
 
-%\section{Analysis and Applications} % (fold)
-%\label{sec:analysis_and_applications}
+\section{Analysis} % (fold)
+\label{sec:analysis}
+
+\subsection{Reduction in intermediate work products} % (fold)
+\label{sub:reduction_in_intermediate_work_products}
+Every stage in a 16S pipeline require a set of input and output files, which increases 
+the organizational workload for the user running the pipeline. By feeding inputs and
+consuming outputs of stages, a Pip database can contain all data within a pipeline
+in a single file, reducing the amount of file management required of the user. 
+
+% subsection reduction_in_intermediate_work_products (end)
+
+\subsection{Reduction in overall disk usage} % (fold)
+\label{sub:reduction_in_overall_disk_usage}
+Reducing the number of intermediate work products in a pipeline also serves to reduce 
+the amount of disk space consumed by running a pipeline. Temporary work products 
+produced by converting between one file format to another can be reduced or eliminated 
+by performing data transformations in Pip and feeding the output to the next stage 
+directly. 
+
+% subsection reduction_in_overall_disk_usage (end)
+
+\subsection{Faster pipeline runs} % (fold)
+\label{sub:faster_pipeline_runs}
+For programs such as Trimmomatic (which requires only one pass over input data) there
+is a minor increase in processing speed due to reduced disk access. Additionally, since
+format conversions can be performed on-the-fly without disk access, conversion stages
+within a pipeline can be skipped, reducing the overall number of stages in a pipeline.
+% subsection speedup_in_runtimes (end)
+
+\subsection{Improving reproducibility} % (fold)
+\label{sub:improving_reproducibility}
+A Pip database is a container that holds not just the original sequences from the 
+Illumina Sequencer, but also results of transformations performed by stages in 
+the pipeline, and the parameters used in those transformations. Since OTU clustering 
+strategies are sensitive to length and quality filtering parameters upstream, preserving settings 
+used in earlier stages can aid analysis in later stages.
+% subsection improving_reproducibility (end)
+
+\subsection{Easier organization and collaboration} % (fold)
+\label{sub:easier_organization_and_collaboration}
+With all the data on an experiment contained in a single file, users can easily 
+share Pip databases with collaborators without needing to manage dozens of files 
+for every experiment. The semantic structure of the SQLite tables inside the database
+provide an open platform for developers to extend Pip, such as streaming adapters 
+for currently unsupported programs.
+% subsection easier_organization_and_sharing (end)
 
 % section analysis_and_applications (end)
 
 \section{Conclusion} % (fold)
 \label{sec:conclusion}
 The use of Pip within the 16S pipeline shows promise in reducing the logistical
-effort of researcher and interoperability headaches of multiple tools. Currently,
-Pip operates on the first two tools of the 16S pipeline (Trimmomatic, Bowtie) and
-shows promise. Pip can be extended to with tools later in the pipeline easily through
-a plug-in architecture. There appears to be no performance penalty in streaming
-data compared to disk access, and the underlying SQLite implementation is able to
+effort of researcher and interoperability headaches of multiple tools. Pip currently 
+operates on the preprocessing stages of a 16S pipeline and can be extended to later
+stages in the pipeline easily through a plug-in architecture. There appears to be 
+negligible overhead in streaming data compared to transferring data over the filesystem 
+using intermediate files, and the underlying SQLite implementation is able to
 deal with datasets of up to 91 million rows without slowdowns.
 % section conclusion (end)
 

@@ -2,6 +2,12 @@
 \BOOKMARK [1][-]{section.2}{Data Management}{}% 2
 \BOOKMARK [2][-]{subsection.2.1}{Semantic Database Structure}{section.2}% 3
 \BOOKMARK [2][-]{subsection.2.2}{Data Compression}{section.2}% 4
-\BOOKMARK [2][-]{subsection.2.3}{Data Transformation}{section.2}% 5
+\BOOKMARK [2][-]{subsection.2.3}{Data Transformation \046 Flow}{section.2}% 5
 \BOOKMARK [1][-]{section.3}{Results}{}% 6
-\BOOKMARK [1][-]{section.4}{Conclusion}{}% 7
+\BOOKMARK [1][-]{section.4}{Analysis}{}% 7
+\BOOKMARK [2][-]{subsection.4.1}{Reduction in intermediate work products}{section.4}% 8
+\BOOKMARK [2][-]{subsection.4.2}{Reduction in overall disk usage}{section.4}% 9
+\BOOKMARK [2][-]{subsection.4.3}{Faster pipeline runs}{section.4}% 10
+\BOOKMARK [2][-]{subsection.4.4}{Improving reproducibility}{section.4}% 11
+\BOOKMARK [2][-]{subsection.4.5}{Easier organization and collaboration}{section.4}% 12
+\BOOKMARK [1][-]{section.5}{Conclusion}{}% 13
