@@ -1,0 +1,43 @@
+\begin{thebibliography}{1}
+
+\bibitem{qiime}
+454 overview tutorial: de novo otu picking and diversity analyses using 454
+  data.
+\newblock \url{http://qiime.org/tutorials/tutorial.html}.
+\newblock Accessed: 2014-06-13.
+
+\bibitem{sqlitewhen}
+Appropriate uses for sqlite.
+\newblock \url{http://www.sqlite.org/whentouse.html}.
+\newblock Accessed: 2014-06-13.
+
+\bibitem{paired-end}
+Paired-end sequencing assay.
+\newblock
+  \url{http://www.illumina.com/technology/next-generation-sequencing/paired-end-sequencing_assay.ilmn}.
+\newblock Accessed: 2014-06-13.
+
+\bibitem{21352538}
+Marcin Cieslik and Cameron Mura.
+\newblock A lightweight, flow-based toolkit for parallel and distributed
+  bioinformatics pipelines.
+\newblock {\em BMC Bioinformatics}, 12(1):61, 2011.
+
+\bibitem{Conery:2005:RWM:1089844.1089845}
+S.~Conery, M.~Catchen, and Michael Lynch.
+\newblock Rule-based workflow management for bioinformatics.
+\newblock {\em The VLDB Journal}, 14(3):318--329, September 2005.
+
+\bibitem{uparse}
+Robert Edgar.
+\newblock Uparse pipeline.
+\newblock \url{http://www.drive5.com/usearch/manual/uparse_pipeline.html}.
+\newblock Accessed: 2014-06-13.
+
+\bibitem{23046922}
+Xiaoquan Su, Jian Xu, and Kang Ning.
+\newblock Parallel-meta: efficient metagenomic data analysis based on
+  high-performance computation.
+\newblock {\em BMC Systems Biology}, 6(Suppl 1):S16, 2012.
+
+\end{thebibliography}

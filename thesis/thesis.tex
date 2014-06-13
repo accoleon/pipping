@@ -9,7 +9,7 @@
 \usepackage{hyperref,cleveref}
 \begin{document}
 
-	\title{16S RNA Sequencing Data Management using SQLite}
+	\title{Using SQLite to Manage a 16S RNA Sequencing Analysis Pipeline}
 	\author{Xu Junjie, Kevin}
 	\date{June 2014}
 	\maketitle
@@ -23,36 +23,35 @@
 	\tableofcontents
 	\section{Introduction} % (fold)
 	\label{sec:introduction}
-	The 16S small subunit of bacterial ribosomes are highly gene sequences found in all bacteria, which means that the differences within the 16S RNA profiles can be used as an analogue for species identity. Since the 16S gene contains both highly conserved and highly variable regions all interspersed together,
-	the highly conserved regions can be amplified using PCR (Polymerase chain reaction), while the variable regions are used to classify the organism. HTS (High Throughput Sequencing) using Illumina sequencers are then used to sequence the PCR products from the prior step.
+	The 16S small subunit of bacterial ribosomes are gene sequences found in all bacteria, which means that the differences within the 16S RNA profiles can be used as an analogue for species identity. Since the 16S gene contains both highly conserved and highly variable regions all interspersed together,
+	the highly conserved regions cut, while the variable regions are amplified using PCR (Polymerase chain reaction) to classify the organism. HTS (High Throughput Sequencing) using Illumina sequencers are then used to sequence the PCR products from the prior step.
 
 	The output from HTS forms the start of the computational pipeline. In the preprocessing stage, poor quality reads are filtered and trimmed. 
-	Chimeras\footnote{a single organism composed of genetically distinct cells} and non-bacterial 16S reads are then removed. 
-	The pipeline then attempts to produce phylogenetic classification through the use of classification based on sequence similarity (i.e. OTU Analysis). By comparing the filtered output from HTS against the already existing taxonomies of over 2 million species, the genus, family, and order of the sample can be determined.
+	Non-bacterial sequences and other contaminants are then removed. 
+	The pipeline then attempts to produce phylogenetic classification based on sequence similarity (i.e. OTU Analysis). By comparing the filtered output from HTS against the already existing taxonomies of over 2 million species, the genus, family, and order of the sample can be determined.
 
 	%The classifier can fail for various reasons: for example, the majority of bacterial species have not been identified or sequenced, the 16S reads are usually too short for accurate classification. In those cases, groups of highly similar sequences are grouped into OTUs (Operational Taxonomic Unit) that can be analyzed for quantitative differences in communities between the sequenced samples.
 
 	%The project utilizes a computational approach due to the large amount of raw sequencing data that is created from the PCR amplification process. The variability of results is further affected by the OTU Analysis stage, where prior parameters can affect the analysis outcome. Using a computational approach would allow the change of various parameters, in order to quantitate the effects of those parameter changes.
 
 	The majority of the pipeline is executed on the University of Oregon’s ACISS High-Performance Supercomputer Cluster, and utilizes PBS scripts (normal shell scripts with extra variables defined to manage job resources) to execute the different stages of the pipeline.
-
-	The FASTQ output produced by the Illumina sequencer is run through the preprocessing stage of filtering, trimming, and demultiplexing. The PBS script for the preprocessing stage calls on the Demultiplexer, a python script written by Rodger Voelker, which removes the primer attached to the sequences during the amplification process, and attaches barcodes (signifying sample origin) to both ends of the paired-end reads in the FASTQ file. After demultiplexing, the pipeline proceeds to use Trimmomatic v0.32, an open source tool to trim poor quality feeds from the reads. It uses a sliding window trimming, that cuts out sequences when the average quality within a window falls below a certain threshold. 
-	Bowtie 2.1.0 is used to align the reads to existing mitochondrial and phiX sequences and to remove them.
+	\Cref{fig:pipeline} illustrates the stages in the pipeline. The FASTQ output produced 
+	by the Illumina sequencer is run through the preprocessing stage of filtering, 
+	trimming, and demultiplexing. The PBS script for the preprocessing stage calls 
+	on the Demultiplexer, a Python script written by Rodger Voelker, which removes the 
+	primer attached to the sequences during the amplification process, and attaches barcodes 
+	(signifying sample origin) to both ends of the paired-end reads in the FASTQ file. 
+	After demultiplexing, the pipeline proceeds to use Trimmomatic v0.32, an open source 
+	tool to trim poor quality feeds from the reads. It uses sliding window trimming to 
+	cut out sequences when the average quality within a window falls below a certain threshold. 
+	Programs in the QIIME package are then used for clustering and taxonomic classification stages.
 	
 	\begin{figure}[h!]
 		\centering
 		\includegraphics[width=\textwidth]{Pipeline}
-		\caption{16S pipeline stages explored with Pip}
+		\caption{16S pipeline stages}
 		\label{fig:pipeline}
 	\end{figure}
-	
-	Pip (\emph{P}ipeline \emph{I}nterface \emph{P}rogram) was developed to explore the feasibility of 
-	storing 16S Ribosomal RNA Sequencing pipeline work products in a SQLite database.
-	The project began on the preprocessing (primer splitting, trimming, quality filtering) 
-	stages of the pipeline, preparing the work products from the raw sequencing 
-	data produced by the Illumina NGS machines to be fed into the analysis (clustering, alignment, phylogenic inference) 
-	stages. \Cref{fig:pipeline} illustrates the stages of a 16S sequencing pipeline that Pip currently 
-	interfaces with.
 	
 	Every stage within a pipeline consumes a set of input files and produces a set 
 	of output files, so a single run of an experiment through the pipeline will produce
@@ -76,12 +75,65 @@
 		\label{tab:stages_files}
 	\end{table}
 	
-	Pip eliminates the accumulation of intermediate work products in a pipeline by
-	containing the data within a single file (Pip database). It reduces the amount 
-	of disk space usage through compression and storage of logical differences between
-	the input and output of stages. By transferring only the required data to the 
-	stages in the pipeline, Pip reduces disk access and provides minor speedups to 
-	runtimes.
+	PIPPING was developed as an extension to PIP\cite{Conery:2005:RWM:1089844.1089845} (\emph{P}ipeline \emph{I}nterface \emph{P}rogram), a prototype 
+	tool that manages bioinformatics pipelines using MySQL databases. 
+	The project focused on the preprocessing (primer splitting, trimming, quality filtering) 
+	stages of the pipeline, preparing the work products from the raw sequencing 
+	data produced by the Illumina NGS machines to be fed into the analysis (clustering, alignment, phylogenic inference) 
+	stages. Instead of using MySQL databases, PIPPING explored the feasibility of 
+	storing work products in a SQLite database, with the following goals:
+	
+	\subsection{Reduction in intermediate work products} % (fold)
+	\label{sub:reduction_in_intermediate_work_products}
+	Every stage in a 16S pipeline require a set of input and output files, which increases 
+	the organizational workload for the user running the pipeline. By feeding inputs and
+	consuming outputs of stages, a PIPPING database can contain all data within a pipeline
+	in a single file, reducing the amount of file management required of the user. 
+
+	% subsection reduction_in_intermediate_work_products (end)
+
+	\subsection{Reduction in overall disk usage} % (fold)
+	\label{sub:reduction_in_overall_disk_usage}
+	Reducing the number of intermediate work products in a pipeline also serves to reduce 
+	the amount of disk space consumed by running a pipeline. Temporary work products 
+	produced by converting between one file format to another can be reduced or eliminated 
+	by performing data transformations in PIPPING and feeding the output to the next stage 
+	directly. 
+
+	% subsection reduction_in_overall_disk_usage (end)
+
+	\subsection{Faster pipeline runs} % (fold)
+	\label{sub:faster_pipeline_runs}
+	For programs such as Trimmomatic (which requires only one pass over input data) there
+	is a minor increase in processing speed due to reduced disk access. Additionally, since
+	format conversions can be performed on-the-fly without disk access, conversion stages
+	within a pipeline can be skipped, reducing the overall number of stages in a pipeline.
+	% subsection speedup_in_runtimes (end)
+
+	\subsection{Improving reproducibility} % (fold)
+	\label{sub:improving_reproducibility}
+	A PIPPING database is a container that holds not just the original sequences from the 
+	Illumina Sequencer, but also results of transformations performed by stages in 
+	the pipeline, and the parameters used in those transformations. Since OTU clustering 
+	strategies are sensitive to length and quality filtering parameters upstream, preserving settings 
+	used in earlier stages can aid analysis in later stages.
+	% subsection improving_reproducibility (end)
+
+	\subsection{Easier organization and collaboration} % (fold)
+	\label{sub:easier_organization_and_collaboration}
+	With all the data on an experiment contained in a single file, users can easily 
+	share PIPPING databases with collaborators without needing to manage dozens of files 
+	for every experiment. The semantic structure of the SQLite tables inside the database
+	provide an open platform for developers to extend Pip, such as streaming adapters 
+	for currently unsupported programs.
+	% subsection easier_organization_and_sharing (end)
+	
+	%PIPPING eliminates the accumulation of intermediate work products in a pipeline by
+	%containing the data within a single file (PIPPING database). It reduces the amount 
+	%of disk space usage through compression and storage of logical differences between
+	%the input and output of stages. By transferring only the required data to the 
+	%stages in the pipeline, PIPPING reduces disk access and provides minor speedups to 
+	%runtimes.
 	
 	% section introduction (end)
 	\section{Data Management} % (fold)
@@ -91,19 +143,45 @@
 	transforming stored data into formats required by tools in the pipeline; logging
 	settings and parameters of transformations and related metadata.
 	
-	As the first stage in a 16S pipeline, Pip combines primer sequences, barcodes, 
+	As the first stage in a 16S pipeline, PIPPING combines primer sequences, barcodes, 
 	offsets, and raw Illumina NGS (Next-Gen Sequencing) FASTQ files into a single, 
-	compressed file that acts as a logical container for the experiment. Pip 
+	compressed file that acts as a logical container for the experiment. PIPPING 
 	encapsulates the data with adapters to transform the compressed data into 
-	usable input for subsequent stages, and provides metadata logging.
+	usable input for subsequent stages, and provides metadata logging. Typically, 
+	an Illumina NGS machine uses \emph{Paired-End Sequencing}\cite{paired-end} to produce a pair of FASTQ files
+	in the following format:
+
+	\singlespacing
+	\begin{verbatim}
+@HWI-ST0747:277:D1M96ACXX:6:1101:1232:2090 1:N:0:
+GGATAGTACTAGGGTATCTAATCCTGTTTGCTCCCCACGCT...
++
+ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
+	\end{verbatim}
+	\doublespacing
+	where line 1 is the \emph{defline} containing information about the Illumina
+	Sequencer which produced the sequence, line 2 contains all the bases in the 
+	sequence, line 3 is the separator between the sequence and quality scores, and 
+	line 4 contains the corresponding quality score for each of the bases in the 
+	sequence. Each character in the file ias an ASCII character taking up 8 bits. 
+	The format uses five characters to represent the four DNA-bases (A - adenine, T - thymine,
+	C - cytosine, G - guanine) and N to represent an errorneous read. Each base is paired
+	with a quality score that has 42 values (0 to 41).
 
 	\subsection{Semantic Database Structure} % (fold)
 	\label{sub:semantic_database_structure}
 	Instead of juggling multiple input files such as raw Illumina FASTQ sequences,
-	barcodes, and offsets, Pip creates several SQLite tables which impart a well-defined
+	barcodes, and offsets, PIPPING creates several SQLite tables which impart a well-defined
 	semantic structure to the data and contains them within a single file.
 	
-	A Pip database is initialized with six tables:
+	\begin{figure}[h!]
+		\centering
+		\includegraphics[width=\textwidth]{db_structure}
+		\caption{PIPPING database structure}
+		\label{fig:db_structure}
+	\end{figure}
+	\Cref{fig:db_structure} shows the structure of a PIPPING database, 
+	initialized with six tables:
 	
 	\begin{description}
 		\item[primer] holds all primer sequences used in the experiment
@@ -116,45 +194,40 @@
 	
 	The \emph{primer}, \emph{offset}, and \emph{barcode} tables links information 
 	about the experiment to the actual sequences to be stored in the \emph{read1} 
-	and \emph{read2} tables. The \emph{log} table stores metadata about every 
-	operation done in Pip. For example, running Trimmomatic with Pip \emph{trimmed1} and \emph{trimmed2} 
-	tables which stores the results from the trimming and filtering operations performed 
-	by Trimmomatic. The settings used in the operation, along with the time and sequences affected
+	and \emph{read2} tables. Each sequence in the FASTQ input is stored as a row in 
+	the read tables, depending on which part of a paired-end sequence it is. The 
+	compression scheme detailed in the next section combines 
+	the sequence and quality score lines of a FASTQ sequence into a binary BLOB
+	
+	The \emph{log} table stores metadata about every 
+	operation done in Pip. The settings used in the operation, along with the time and sequences affected
 	are stored in the \emph{log} table. Since the results of OTU Analysis can be 
 	affected by parameters used by the stages upstream in a pipeline, having a 
 	reliable record of operations and transformations to the data will aid in 
 	analysis stages downstream.
+	
+	Sequence data stored in \emph{read1} and \emph{read2} tables in the database are fed as input 
+	to later stages in the pipeline. Correspondingly, output from those stages are 
+	normalized into new tables in the database. For example, running Trimmomatic with 
+	PIPPING \emph{trimmed1} and \emph{trimmed2} tables which stores the coordinates 
+	of trimmed bases from the results of trimming and filtering operations performed by Trimmomatic. 
+	This prevents unnecessary data duplication and reduces the file size of a PIPPING 
+	database.
 
 	% subsection database_structure (end)
 
 	\subsection{Data Compression} % (fold)
 	\label{sub:data_compression}
-	FASTQ files generated by Illumina NGS machines have this general format:
-	
-	\lstset{
-		numbers=right
-	}
-	\begin{lstlisting}
-@HWI-ST0747:277:D1M96ACXX:6:1101:1232:2090 1:N:0:
-GGATAGTACTAGGGTATCTAATCCTGTTTGCTCCCCACGCT...
-+
-ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
-	\end{lstlisting}
-	where line 1 is the \emph{defline} containing information about the Illumina
-	Sequencer which produced the sequence, line 2 contains all the bases in the 
-	sequence, line 3 is the separator between the sequence and quality scores, and 
-	line 4 contains the corresponding quality score for each of the bases in the 
-	sequence. Each character in the file ias an ASCII character taking up 8 bits. 
-	The format uses five characters to represent the four DNA-bases (A - adenine, T - thymine,
-	C - cytosine, G - guanine) and N to represent an errorneous read. Each base is paired
-	with a quality score that has 42 values (0 to 41). Compression works by representing
+	Compression works by representing
 	each base with an integer range (A: 0 to 49, T: 50-99, C: 100-149, G: 150-199, N: 200-255)
 	and adding the quality score to the beginning of that range. Thus, base `A' with a 
 	quality score of `\#' (value 0) can be represented by the value 0, while base `G' with
 	a quality score of `J' (value 41) can be represented by 191 (150 + 41). The resulting
 	values fit within an 8-bit character, which is a 50\% reduction in space usage. 
 	Since both compression and decompression require only addition operators, the scheme
-	is fast and lossless.
+	is fast and lossless. However, the overall size of a PIPPING file is not 50\% smaller 
+	than a raw FASTQ file due to the overhead involved in maintaining a valid SQLite 
+	database.
 
 	% subsection compression (end)
 	
@@ -168,16 +241,14 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 
 	\begin{table}
 		\centering
-		\begin{tabular}{c|c}
-		\hline
+		\begin{tabular}{cc}
+		\toprule
 		Tool & Expected input format\\
-		\hline
+		\midrule
 		Trimmomatic & FASTQ/Gzipped FASTQ\\
-		\hline
 		Bowtie2 & FASTQ/FASTA\\
-		\hline
 		QIIME & 454-FASTA/454-Quality Scores\\
-		\hline
+		\bottomrule
 		\end{tabular}
 		\caption{Expected input formats for various tools}
 		\label{tab:expected_input}
@@ -198,18 +269,18 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 	454-Quality formats required by QIIME), increasing the length of the pipeline 
 	and the number of intermediate work products.
 	
-	Using a plug-in architecture, Pip can ``stream'' sequence data to tools in the
-	pipeline without writing to disk. Pip uses UNIX Named Pipes to feed data to 
+	Using a plug-in architecture, PIPPING can ``stream'' sequence data to tools in the
+	pipeline without writing to disk. PIPPING uses UNIX Named Pipes to feed data to 
 	external programs such as Trimmomatic and Bowtie2 while simultaneously consuming 
 	the output they produce back into the database. UNIX Named Pipes allows programs to transfer
 	data through memory instead of disk, and therefore do not require reading and
 	writing to disk. However, named pipes appear as size zero, regular files on a filesystem,
 	thus tools can read and write from those files without needing any changes
-	to the software. In the case of Trimmomatic, Pip provides a named pipe to capture
+	to the software. In the case of Trimmomatic, PIPPING provides a named pipe to capture
 	the contents of the trimming log, and uses the details within it (sequence number, 
 	position of trim, number of characters trimmed) and stores them in a ``trimmed''
 	table. Since this table only stores the sequences which were operated on, instead 
-	of entire copies of the original sequences, the size increase of the Pip database
+	of entire copies of the original sequences, the size increase of the PIPPING database
 	after the first stage is almost negligible. Additionally, instead of needing to
 	manage multiple output files and their naming, the data is now ready for the 
 	next stage of the pipeline.
@@ -218,15 +289,15 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 
 \section{Results} % (fold)
 \label{sec:results}
-Pip was benchmarked on a 2.7 GHz Intel Core i7 processor with 16GB of RAM, running
+PIPPING was benchmarked on a 2.7 GHz Intel Core i7 processor with 16GB of RAM, running
 OS X 10.9. \Cref{tab:insertion_speeds} shows the time taken for the specified number
-of sequence inserts into a new Pip database. \Cref{fig:insertion_speeds} plots the
+of sequence inserts into a new PIPPING database. \Cref{fig:insertion_speeds} plots the
 number of actual raw inserts per second into SQLite, showing consistent insertion 
 rates between \np{96000} and \np{102000} raw inserts per second.
 
 \begin{table}[h!]
 \centering
-\begin{tabular}{n{4}{2}|n{4}{2}}
+\begin{tabular}{n{4}{2}n{4}{2}}
 	\toprule
  {Number of sequences (paired-end)} & {Time taken (seconds)} \\
  \midrule
@@ -247,7 +318,7 @@ rates between \np{96000} and \np{102000} raw inserts per second.
 \begin{figure}[h!]
 	\centering
 	\includegraphics[width=\textwidth]{insertion_speed_chart}
-	\caption{Inserts per second into SQLite using Pip}
+	\caption{Inserts per second into SQLite using PIPPING}
 	\label{fig:insertion_speeds}
 \end{figure}
 \newpage
@@ -257,9 +328,9 @@ database file after inserts. \Cref{fig:filesizes} reveals a consistent
 
 \begin{table}[h!]
 \centering
-\begin{tabular}{n{0}{0}|n{6}{2}|n{6}{2}}
+\begin{tabular}{n{0}{0}n{6}{2}n{6}{2}}
 	\toprule
- {Number of sequences (paired-end)} & {Input FASTQ size (MB)} & {Pip database (MB)} \\
+ {Number of sequences (paired-end)} & {Input FASTQ size (MB)} & {PIPPING database (MB)} \\
  \midrule
  \np{500000} & 371.40 & 206.90 \\
  \np{1000000} & 743.00 & 413.90 \\
@@ -272,98 +343,57 @@ database file after inserts. \Cref{fig:filesizes} reveals a consistent
  \np{91000000} & 69754.88 & 35061.76 \\
  \bottomrule
 \end{tabular}
-\caption{Comparison of input file sizes against Pip database sizes}
+\caption{Comparison of input file sizes against PIPPING database sizes}
 \label{tab:filesizes}
 \end{table}
 
 \begin{figure}[h!]
 	\centering
 	\includegraphics[width=\textwidth]{filesizes_chart}
-	\caption{File sizes of Pip database against original FASTQ files}
+	\caption{File sizes of PIPPING database against original FASTQ files}
 	\label{fig:filesizes}
 \end{figure}
 
 \Cref{tab:streamspeed} shows runtime reductions in a stage in the test pipeline, 
-as a result of streaming data directly from Pip to Trimmomatic, instead of accessing
+as a result of streaming data directly from PIPPING to Trimmomatic, instead of accessing
 the disk.
 
 \begin{table}[h!]
 \centering
-\begin{tabular}{c|n{6}{2}|n{6}{2}}
+\begin{tabular}{cn{6}{2}n{6}{2}}
 	\toprule
- {Pipeline Stage} & {Raw time (seconds)} & {Pip time (seconds)} \\
+ {Pipeline Stage} & {Raw time (seconds)} & {PIPPING time (seconds)} \\
  \midrule
- Trimmomatic 1-thread & 46.43 & 22.89 \\
- Trimmomatic 2-thread & 25.96 & 23.58 \\
- Trimmomatic 4-thread & 26.05 & 23.77 \\
- Trimmomatic 8-thread & 26.46 & 23.21 \\
+ Trimmomatic & 46.43 & 22.89 \\
  \bottomrule
 \end{tabular}
-\caption{Time needed to process \np{500000} sequences through 16S pipeline stages with and without Pip}
+\caption{Time needed to process \np{500000} sequences through 16S pipeline stages with and without PIPPING}
 \label{tab:streamspeed}
 \end{table}
 
 % section results (end)
 
-\section{Analysis} % (fold)
-\label{sec:analysis}
-
-\subsection{Reduction in intermediate work products} % (fold)
-\label{sub:reduction_in_intermediate_work_products}
-Every stage in a 16S pipeline require a set of input and output files, which increases 
-the organizational workload for the user running the pipeline. By feeding inputs and
-consuming outputs of stages, a Pip database can contain all data within a pipeline
-in a single file, reducing the amount of file management required of the user. 
-
-% subsection reduction_in_intermediate_work_products (end)
-
-\subsection{Reduction in overall disk usage} % (fold)
-\label{sub:reduction_in_overall_disk_usage}
-Reducing the number of intermediate work products in a pipeline also serves to reduce 
-the amount of disk space consumed by running a pipeline. Temporary work products 
-produced by converting between one file format to another can be reduced or eliminated 
-by performing data transformations in Pip and feeding the output to the next stage 
-directly. 
-
-% subsection reduction_in_overall_disk_usage (end)
-
-\subsection{Faster pipeline runs} % (fold)
-\label{sub:faster_pipeline_runs}
-For programs such as Trimmomatic (which requires only one pass over input data) there
-is a minor increase in processing speed due to reduced disk access. Additionally, since
-format conversions can be performed on-the-fly without disk access, conversion stages
-within a pipeline can be skipped, reducing the overall number of stages in a pipeline.
-% subsection speedup_in_runtimes (end)
-
-\subsection{Improving reproducibility} % (fold)
-\label{sub:improving_reproducibility}
-A Pip database is a container that holds not just the original sequences from the 
-Illumina Sequencer, but also results of transformations performed by stages in 
-the pipeline, and the parameters used in those transformations. Since OTU clustering 
-strategies are sensitive to length and quality filtering parameters upstream, preserving settings 
-used in earlier stages can aid analysis in later stages.
-% subsection improving_reproducibility (end)
-
-\subsection{Easier organization and collaboration} % (fold)
-\label{sub:easier_organization_and_collaboration}
-With all the data on an experiment contained in a single file, users can easily 
-share Pip databases with collaborators without needing to manage dozens of files 
-for every experiment. The semantic structure of the SQLite tables inside the database
-provide an open platform for developers to extend Pip, such as streaming adapters 
-for currently unsupported programs.
-% subsection easier_organization_and_sharing (end)
-
-% section analysis_and_applications (end)
-
 \section{Conclusion} % (fold)
 \label{sec:conclusion}
-The use of Pip within the 16S pipeline shows promise in reducing the logistical
-effort of researcher and interoperability headaches of multiple tools. Pip currently 
+The use of PIPPING within the 16S pipeline shows promise in reducing the logistical
+effort of researcher and interoperability headaches of multiple tools. PIPPING currently 
 operates on the preprocessing stages of a 16S pipeline and can be extended to later
-stages in the pipeline easily through a plug-in architecture. There appears to be 
+stages in the pipeline easily through a plug-in architecture. The number of intermediate 
+work products in a pipeline has been reduced to a single PIPPING database file, and there 
+are measurable reductions in pipeline run times. There appears to be 
 negligible overhead in streaming data compared to transferring data over the filesystem 
 using intermediate files, and the underlying SQLite implementation is able to
-deal with datasets of up to 91 million rows without slowdowns.
+deal with datasets of almost 100 million rows without slowdowns. The plug-in architecture
+of PIPPING can be extended in the future to support other pipelines such as UPARSE\cite{uparse} or
+QIIME\cite{qiime}.
+
+However, PIPPING currently does not perform complex queries such as subtable queries in 
+its current pipeline so we do not have data on possible scalability issues. SQLite itself
+might also be a limiting factor due to its single-access model\cite{sqlitewhen}, so it might not work
+well for distributed or parallel workflow projects such as PaPy\cite{21352538} or
+Parallel-META\cite{23046922}.
 % section conclusion (end)
 
+\bibliographystyle{plain}
+\bibliography{citations}
 \end{document}

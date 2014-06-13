@@ -1,14 +1,13 @@
 \select@language {english}
 \contentsline {section}{\numberline {1}Introduction}{2}{section.1}
-\contentsline {section}{\numberline {2}Data Management}{5}{section.2}
-\contentsline {subsection}{\numberline {2.1}Semantic Database Structure}{6}{subsection.2.1}
-\contentsline {subsection}{\numberline {2.2}Data Compression}{7}{subsection.2.2}
-\contentsline {subsection}{\numberline {2.3}Data Transformation \& Flow}{8}{subsection.2.3}
-\contentsline {section}{\numberline {3}Results}{10}{section.3}
-\contentsline {section}{\numberline {4}Analysis}{13}{section.4}
-\contentsline {subsection}{\numberline {4.1}Reduction in intermediate work products}{13}{subsection.4.1}
-\contentsline {subsection}{\numberline {4.2}Reduction in overall disk usage}{13}{subsection.4.2}
-\contentsline {subsection}{\numberline {4.3}Faster pipeline runs}{13}{subsection.4.3}
-\contentsline {subsection}{\numberline {4.4}Improving reproducibility}{14}{subsection.4.4}
-\contentsline {subsection}{\numberline {4.5}Easier organization and collaboration}{14}{subsection.4.5}
-\contentsline {section}{\numberline {5}Conclusion}{14}{section.5}
+\contentsline {subsection}{\numberline {1.1}Reduction in intermediate work products}{5}{subsection.1.1}
+\contentsline {subsection}{\numberline {1.2}Reduction in overall disk usage}{5}{subsection.1.2}
+\contentsline {subsection}{\numberline {1.3}Faster pipeline runs}{6}{subsection.1.3}
+\contentsline {subsection}{\numberline {1.4}Improving reproducibility}{6}{subsection.1.4}
+\contentsline {subsection}{\numberline {1.5}Easier organization and collaboration}{6}{subsection.1.5}
+\contentsline {section}{\numberline {2}Data Management}{7}{section.2}
+\contentsline {subsection}{\numberline {2.1}Semantic Database Structure}{8}{subsection.2.1}
+\contentsline {subsection}{\numberline {2.2}Data Compression}{10}{subsection.2.2}
+\contentsline {subsection}{\numberline {2.3}Data Transformation \& Flow}{10}{subsection.2.3}
+\contentsline {section}{\numberline {3}Results}{12}{section.3}
+\contentsline {section}{\numberline {4}Conclusion}{15}{section.4}
