@@ -195,9 +195,7 @@ ACCCFFDDFH#FHHIGIJJFJJJJJJJJJJJIIJJJGIJJG...
 	The \emph{primer}, \emph{offset}, and \emph{barcode} tables links information 
 	about the experiment to the actual sequences to be stored in the \emph{read1} 
 	and \emph{read2} tables. Each sequence in the FASTQ input is stored as a row in 
-	the read tables, depending on which part of a paired-end sequence it is. The 
-	compression scheme detailed in the next section combines 
-	the sequence and quality score lines of a FASTQ sequence into a binary BLOB
+	the read tables, with the bases and quality scores compressed into a binary BLOB.
 	
 	The \emph{log} table stores metadata about every 
 	operation done in Pip. The settings used in the operation, along with the time and sequences affected
